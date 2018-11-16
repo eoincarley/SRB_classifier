@@ -1,0 +1,7 @@
+train_test_data.npy
+radio_bursts/*
+SVM/hyperparam_optimise.npy
+CNN/classify_20170902/*
+CNN/classify_20170910/*
+CNN/examples/*
+CNN/training_imgs/*

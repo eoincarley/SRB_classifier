@@ -1,0 +1,1 @@
+python3 label_image.py --graph=/tmp/output_graph.pb --labels=/tmp/output_labels.txt --input_layer=Placeholder --output_layer=final_result --image=/Users/eoincarley/python/machine_learning/radio_burst_classifiers/CNN/classify_20170902/trial4/input.png > /Users/eoincarley/python/machine_learning/radio_burst_classifiers/CNN/classify_20170902/trial4/class_probs.txt
