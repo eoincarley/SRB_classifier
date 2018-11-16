@@ -44,11 +44,12 @@ def backsub(data):
 ################################
 #         Read data
 #
+
 event_date='20170902'
 file_path = './classify_'+event_date+'/'
-output_path = './classify_'+event_date+'/trial4/'
+output_path = './classify_'+event_date+'/trial2/'
 file = file_path+'20170902_103626_bst_00X.npy'
-result=np.load(path+file)
+result=np.load(file)
 datatotal = result[0]['data']
 datatotal= backsub(datatotal)
 datatotal = datatotal[::-1, ::]
@@ -77,9 +78,9 @@ for delt in np.arange(0, 28800, timestep):
     ################################
     #    Smooth and resize data
     #
-    tophat_kernel = Tophat2DKernel(3)
-    data_smooth = convolve(data, tophat_kernel)
-    data_resize = resize(data_smooth, (100, 100))
+    #tophat_kernel = Tophat2DKernel(3)
+    #data_smooth = convolve(data, tophat_kernel)
+    data_resize = resize(data, (300, 300))
     data_resize = data_resize[::-1, ::]
 
     ###########################################################
@@ -89,17 +90,25 @@ for delt in np.arange(0, 28800, timestep):
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
 
-    pdb.set_trace()
-    scl0 = data_resize.mean() + data_resize.std()  # was data_resize.max()*0.75
-    scl1 = data_resize.mean() + data_resize.std()  # data_resize.max()
+    scl0 = data_resize.max()*0.75 #data_resize.mean() + data_resize.std()       # was data_resize.max()*0.75
+    scl1 = data_resize.max()*0.9      #data_resize.mean() + data_resize.std()*4.0   # data_resize.max()
+
     ax.imshow(data_resize, cmap=plt.get_cmap('gray'), vmin=scl0, vmax=scl1)
+
     #img1 = path+'/training_'+str(format(iamgenum, '04'))+'.png'
+    #fig.savefig(img1, transparent = True, bbox_inches = 'tight', pad_inches = 0)
+
     img2 = output_path+'/input.png'
-    fig.savefig(img1, transparent = True, bbox_inches = 'tight', pad_inches = 0)
     fig.savefig(img2, transparent = True, bbox_inches = 'tight', pad_inches = 0)
     plt.close(fig)
     
-    os.system('./label_image.sh') # Execute the Tensorflow script which calls the trained InceptionV3 CNN.
+    ##########################################
+    #   **** Execute the Tensorflow script which calls  ***
+    #           the trained InceptionV3 CNN.
+    os.system('./label_image.sh '+output_path+' >> label_image.log') 
+    #
+    #
+    ##########################################
 
     ##########################################
     #    Plot unsmooth dynamic spectrum 
@@ -162,5 +171,5 @@ for delt in np.arange(0, 28800, timestep):
     iamgenum += 1
 #   plt.pause(2)
     plt.close(fig)
-
+   # pdb.set_trace()
 #ffmpeg -y -r 25 -i image_%04d.png -vb 50M classified.mpg
