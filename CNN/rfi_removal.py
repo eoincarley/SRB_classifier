@@ -27,7 +27,7 @@ def rfi_removal(image, boxsz=5):
     for index, value in enumerate(indices[0]):
         xind = indices[1][index]
         yind = indices[0][index]
-        box = np.clip([yind-boxsz, yind+boxsz*2, xind-boxsz*2, xind+boxsz], 0, np.shape(image)[0]-1)
+        box = np.clip([yind-boxsz*2, yind+boxsz*2, xind-boxsz, xind+boxsz], 0, np.shape(image)[0]-1)
         section = image[  box[0]:box[1], box[2]:box[3] ]
         image[box[0]:box[1], box[2]:box[3]] = np.median(section)
 

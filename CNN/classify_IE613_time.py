@@ -21,6 +21,7 @@ import os
 import pdb
 import seaborn as sns
 import label_image
+from rfi_removal import rfi_removal
 from matplotlib import dates
 from radiospectra import spectrogram
 from datetime import datetime
@@ -46,9 +47,9 @@ def backsub(data):
     #       data[sb, :] = data[sb, :]/np.mean(data[sb, :])
     return data
 
-def tf_label(graph, label_file):
+def tf_label(graph, filename, label_file):
     t = label_image.read_tensor_from_image_file(
-    file_name,
+    filename,
     input_height=input_height,
     input_width=input_width,
     input_mean=input_mean,
@@ -66,40 +67,68 @@ def tf_label(graph, label_file):
     print(results)
     return results
     
+def write_png_for_classifier(data, filename):
 
-################################
-#         Read data
-#
+    #######################################################
+    #    Resize, remove rfi, background subtract data
+    #
+    #tophat_kernel = Tophat2DKernel(3)
+    #data_smooth = convolve(data, tophat_kernel)
+    data = data[::-1, ::]
+    data = rfi_removal(data, boxsz=1)
+    data = backsub(data)
+    scl0 = data.max()*0.8     #data_resize.mean() + data_resize.std()       # was data_resize.max()*0.75
+    scl1 = data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0   # data_resize.max()
+
+    ###########################################################
+    #    Write png and execute Tensorflow label script 
+    #    
+    fig = plt.figure(1, frameon=False, figsize=(4,4))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.axis('off')
+    ax.imshow(data, cmap=plt.get_cmap('gray'), vmin=scl0, vmax=scl1)
+    fig.savefig(filename, transparent = True, bbox_inches = 'tight', pad_inches = 0)
+    plt.close(fig)
+
+    #img1 = path+'/training_'+str(format(iamgenum, '04'))+'.png'
+    #fig.savefig(img1, transparent = True, bbox_inches = 'tight', pad_inches = 0)
+
+
 IE613_file = '20170902_103626_bst_00X.npy'
 event_date = IE613_file.split('_')[0]
 file_path = 'classify_'+event_date+'/'
 output_path = file_path+'/trial2/'
-result = np.load(file_path+IE613_file)
-datatotal = result[0]['data']
-datatotal = backsub(datatotal)
-datatotal = datatotal[::-1, ::]                 # Reverse spectrogram. For plotting high -> low frequency
-freqs = np.array(result[0]['freq'])             # In MHz
-freqs = freqs[::-1]                             # For plotting high -> low frequency
-indices = np.where(freqs <= 100.0)               # Taking only the LBA frequencies
-freqs = freqs[indices[0]]
-datatotal = datatotal[indices[0], ::]
-timesut_total = np.array(result[0]['time'])     # In UTC
-time0global = timesut_total[0]
-time1global = timesut_total[0] + 60.0*10.0      # +15 minutes
-deltglobal = timesut_total[-1] - timesut_total[0]
-timestep = 10
-trange = np.arange(0, deltglobal, timestep)
-
-
 model_file = '/tmp/output_graph.pb'
-file_name = output_path+'/input.png'
+png_file = output_path+'/input.png'             # PNG that is output by write_png_for_classifier and ingested by tf_label.
 input_height = 299
 input_width = 299
-input_mean = 0
 input_std = 255
+input_mean = 0
 input_layer = "Placeholder"
 output_layer = "final_result"
 label_file = "/tmp/output_labels.txt"
+timestep = 10   # Seconds 
+
+################################
+#         Read data
+#
+result = np.load(file_path+IE613_file)
+spectro = result[0]['data']                     # Spectrogram of entire day
+freqs = np.array(result[0]['freq'])             # In MHz
+timesut_total = np.array(result[0]['time'])     # In UTC
+
+# Sort frequencies
+spectro = spectro[::-1, ::]                     # Reverse spectrogram. For plotting high -> low frequency
+freqs = freqs[::-1]                             # For plotting high -> low frequency
+indices = np.where(freqs <= 100.0)              # Taking only the LBA frequencies
+freqs = freqs[indices[0]]
+spectro = spectro[indices[0], ::]
+
+# Sort time
+time0global = timesut_total[0]
+time1global = timesut_total[0] + 60.0*10.0      # +15 minutes
+deltglobal = timesut_total[-1] - timesut_total[0]
+trange = np.arange(0, deltglobal, timestep)
 
 graph = label_image.load_graph(model_file)
 input_name = "import/" + input_layer
@@ -116,43 +145,21 @@ for img_index, tstep in enumerate(trange):
     #
     time_start = time0global + tstep
     time_stop = time1global + tstep
-    time_index = np.where( (timesut_total >= time_start) & (timesut_total <= time_stop))
+    time_index = np.where( (timesut_total >= time_start) 
+                            & (timesut_total <= time_stop))
     times_ut = timesut_total[time_index[0]]
-    data = datatotal[::, time_index[0]] #mode 3 reading
+    data = spectro[::, time_index[0]] #mode 3 reading
     delta_t = times_ut - times_ut[0]
     times_dt = [datetime.fromtimestamp(t) for t in times_ut]
 
-
-    ################################
-    #    Smooth and resize data
-    #
-    #tophat_kernel = Tophat2DKernel(3)
-    #data_smooth = convolve(data, tophat_kernel)
-    data_resize = resize(data, (300, 300))
-    data_resize = data_resize[::-1, ::]
-
-
-    ###########################################################
-    #    Write png and execute Tensorflow label script 
-    #    
-    fig = plt.figure(1, frameon=False, figsize=(4,4))
-    ax = fig.add_axes([0, 0, 1, 1])
-    ax.axis('off')
-    scl0 = data_resize.max()*0.8     #data_resize.mean() + data_resize.std()       # was data_resize.max()*0.75
-    scl1 = data_resize.max()      #data_resize.mean() + data_resize.std()*4.0   # data_resize.max()
-    ax.imshow(data_resize, cmap=plt.get_cmap('gray'), vmin=scl0, vmax=scl1)
-    fig.savefig(file_name, transparent = True, bbox_inches = 'tight', pad_inches = 0)
-    plt.close(fig)
-
-    #img1 = path+'/training_'+str(format(iamgenum, '04'))+'.png'
-    #fig.savefig(img1, transparent = True, bbox_inches = 'tight', pad_inches = 0)
-
+    data_resize = resize(data, (input_height, input_height))
+    write_png_for_classifier(data_resize, png_file) 
     
     #####################################################
     #
-    #    Execute Tensorflow label function
+    #    Execute Tensorflow label function on PNG file
     # 
-    burst_probs = tf_label(graph, label_file)
+    burst_probs = tf_label(graph, png_file, label_file)
     type0prob = np.array( [burst_probs[0][1]] )   
     typeIIprob = np.array( [burst_probs[1][1]] )   
     typeIIIprob = np.array( [burst_probs[2][1]] )  
@@ -172,22 +179,21 @@ for img_index, tstep in enumerate(trange):
     #   
     fig = plt.figure(2, figsize=(10,7))
     ax0 = fig.add_axes([0.1, 0.11, 0.9, 0.6])
+    data = backsub(data)
     spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
+    spec.plot(vmin=data.max()*0.7, 
+              vmax=data.max()*1.0, 
+              cmap=plt.get_cmap('Spectral_r'))
+    ax1 = fig.add_axes([0.1, 0.72, 0.72, 0.25])
     spec.t_label='Time (UT)'
     spec.f_label='Frequency (MHz)'
-    spec.plot(vmin=scl0, vmax=scl1, cmap=plt.get_cmap('Spectral_r'))
 
-    #sns.set()
-    #sns.set_style("darkgrid")
-    ax1 = fig.add_axes([0.1, 0.72, 0.72, 0.25])
     plt.plot(timprobs, type0probt, color='blue')
     plt.plot(timprobs, typeIIprobt, color='red')
     plt.plot(timprobs, typeIIIprobt, color='green')
-
     add_label(timprobs, type0probt, 'No burst')
     add_label(timprobs, typeIIprobt, 'Type II')
     add_label(timprobs, typeIIIprobt, 'Type III')
-
     ax1.set_ylim([0, 1])
     ax1.autoscale(enable=True, axis='x', tight=True)
     plt.xticks([])
@@ -197,5 +203,5 @@ for img_index, tstep in enumerate(trange):
 
     fig.savefig(output_path+'/image_'+str(format(img_index, '04'))+'.png')
     plt.close(fig)
-
+    pdb.set_trace()
 #ffmpeg -y -r 25 -i image_%04d.png -vb 50M classified.mpg
