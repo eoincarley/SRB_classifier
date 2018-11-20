@@ -21,7 +21,7 @@ import os
 import pdb
 import seaborn as sns
 import label_image
-from rfi_removal import rfi_removal
+import spectro_process
 from matplotlib import dates
 from radiospectra import spectrogram
 from datetime import datetime
@@ -32,20 +32,6 @@ from matplotlib import gridspec
 
 def add_label(taxis, prob, bursttype):
     ax1.text(taxis[-1], prob[-1], bursttype+' ('+str(round(prob[-1],2))+')', fontsize=8)
-
-def backsub(data):
-    # Devide each spectrum by the spectrum with the minimum standard deviation.
-    data = np.log10(data)
-    data[np.where(np.isinf(data)==True)] = 0.0
-    data_std = np.std(data, axis=0)
-    min_std_index = np.where(data_std==np.min( data_std[np.nonzero(data_std)] ))[0][0]
-    min_std_spec = data[:, min_std_index]
-    nfreq = len(min_std_spec)
-    data = np.divide(data, min_std_spec.reshape(nfreq,1))
-    #Alternative: Normalizing frequency channel responses using median of values.
-    #for sb in np.arange(data.shape[0]):
-    #       data[sb, :] = data[sb, :]/np.mean(data[sb, :])
-    return data
 
 
 def tf_label(graph, filename, label_file):
@@ -78,14 +64,13 @@ def write_png_for_classifier(data, filename):
     #tophat_kernel = Tophat2DKernel(3)
     #data_smooth = convolve(data, tophat_kernel)
     data = data[::-1, ::]
-    data = rfi_removal(data, boxsz=1)
-    data = backsub(data)
+    data = spectro_process.rfi_removal(data, boxsz=1)
+    data = spectro_process.backsub(data)
     scl0 = data.max()*0.8     #data_resize.mean() + data_resize.std()     
     scl1 = data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0
-    # Note these scaling indices are important. If the background is not clipped away
-    # the classifier is not successful. Only the most intense bursts in the image are 
-    # classified. this is because the training data had to be clipped quite harshly to
-    # train the CNN.
+    # Note these intensity scaling factors are important. If the background is not clipped away, 
+    # the classifier is not successful. Only the most intense bursts in the image are classified. 
+    # This is because the training data had to be clipped quite harshly to train the CNN.
 
     #-------------------------------------------------------------------#
     #
@@ -118,7 +103,6 @@ input_name = "import/" + input_layer
 output_name = "import/" + output_layer
 label_file = "/tmp/output_labels.txt"
 timestep = 10   # Seconds 
-
 
 #-------------------------------------#
 #
@@ -195,7 +179,7 @@ for img_index, tstep in enumerate(trange):
     #   
     fig = plt.figure(2, figsize=(10,7))
     ax0 = fig.add_axes([0.1, 0.11, 0.9, 0.6])
-    data = backsub(data)
+    data = spectro_process.backsub(data)
     spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
     spec.plot(vmin=data.max()*0.7, 
               vmax=data.max()*1.0, 
