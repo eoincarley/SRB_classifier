@@ -47,6 +47,7 @@ def backsub(data):
     #       data[sb, :] = data[sb, :]/np.mean(data[sb, :])
     return data
 
+
 def tf_label(graph, filename, label_file):
     t = label_image.read_tensor_from_image_file(
     filename,
@@ -67,9 +68,11 @@ def tf_label(graph, filename, label_file):
     print(results)
     return results
     
+
 def write_png_for_classifier(data, filename):
 
-    #######################################################
+    #-------------------------------------------------------#
+    #
     #    Resize, remove rfi, background subtract data
     #
     #tophat_kernel = Tophat2DKernel(3)
@@ -77,11 +80,16 @@ def write_png_for_classifier(data, filename):
     data = data[::-1, ::]
     data = rfi_removal(data, boxsz=1)
     data = backsub(data)
-    scl0 = data.max()*0.8     #data_resize.mean() + data_resize.std()       # was data_resize.max()*0.75
-    scl1 = data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0   # data_resize.max()
+    scl0 = data.max()*0.8     #data_resize.mean() + data_resize.std()     
+    scl1 = data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0
+    # Note these scaling indices are important. If the background is not clipped away
+    # the classifier is not successful. Only the most intense bursts in the image are 
+    # classified. this is because the training data had to be clipped quite harshly to
+    # train the CNN.
 
-    ###########################################################
-    #    Write png and execute Tensorflow label script 
+    #-------------------------------------------------------------------#
+    #
+    #    Write png that will be ingested by Tensorflow trained model
     #    
     fig = plt.figure(1, frameon=False, figsize=(4,4))
     ax = fig.add_axes([0, 0, 1, 1])
@@ -106,11 +114,15 @@ input_std = 255
 input_mean = 0
 input_layer = "Placeholder"
 output_layer = "final_result"
+input_name = "import/" + input_layer
+output_name = "import/" + output_layer
 label_file = "/tmp/output_labels.txt"
 timestep = 10   # Seconds 
 
-################################
-#         Read data
+
+#-------------------------------------#
+#
+#      Read in IE613 spectrogram
 #
 result = np.load(file_path+IE613_file)
 spectro = result[0]['data']                     # Spectrogram of entire day
@@ -130,16 +142,17 @@ time1global = timesut_total[0] + 60.0*10.0      # +15 minutes
 deltglobal = timesut_total[-1] - timesut_total[0]
 trange = np.arange(0, deltglobal, timestep)
 
+#-------------------------------------#
+#
+#     Load in the trained model
+#
 graph = label_image.load_graph(model_file)
-input_name = "import/" + input_layer
-output_name = "import/" + output_layer
 input_operation = graph.get_operation_by_name(input_name)
 output_operation = graph.get_operation_by_name(output_name)
 
-
 for img_index, tstep in enumerate(trange):
 
-    ################################
+    #-------------------------------------#
     #     Select block of time. 
     #     Shifts by tstep every iteration of the loop.
     #
@@ -163,6 +176,8 @@ for img_index, tstep in enumerate(trange):
     type0prob = np.array( [burst_probs[0][1]] )   
     typeIIprob = np.array( [burst_probs[1][1]] )   
     typeIIIprob = np.array( [burst_probs[2][1]] )  
+    #
+    ######################################################
 
     if tstep==0:
         timprobs = delta_t[0:-1:timestep]
@@ -174,7 +189,8 @@ for img_index, tstep in enumerate(trange):
         typeIIprobt = np.concatenate( (typeIIprobt[1::], typeIIprob) )  
         typeIIIprobt = np.concatenate( (typeIIIprobt[1::], typeIIIprob) )  
 
-    ##########################################
+    #-------------------------------------#
+    #
     #    Plot unsmooth dynamic spectrum 
     #   
     fig = plt.figure(2, figsize=(10,7))
