@@ -71,22 +71,26 @@ def tf_label(graph, label_file):
 ################################
 #         Read data
 #
-
-event_date = '20170902'
-file_path = './classify_'+event_date+'/'
-output_path = './classify_'+event_date+'/trial2/'
-file = file_path+'20170902_103626_bst_00X.npy'
-result = np.load(file)
+IE613_file = '20170902_103626_bst_00X.npy'
+event_date = IE613_file.split('_')[0]
+file_path = 'classify_'+event_date+'/'
+output_path = file_path+'/trial2/'
+result = np.load(file_path+IE613_file)
 datatotal = result[0]['data']
-datatotal= backsub(datatotal)
-datatotal = datatotal[::-1, ::]
-timesut_total = np.array(result[0]['time'])  # In UTC
-freqs = np.array(result[0]['freq'])  # In MHz
-freqs = freqs[::-1]
-indices = np.where(freqs <=100.0)
+datatotal = backsub(datatotal)
+datatotal = datatotal[::-1, ::]                 # Reverse spectrogram. For plotting high -> low frequency
+freqs = np.array(result[0]['freq'])             # In MHz
+freqs = freqs[::-1]                             # For plotting high -> low frequency
+indices = np.where(freqs <= 100.0)               # Taking only the LBA frequencies
 freqs = freqs[indices[0]]
 datatotal = datatotal[indices[0], ::]
-iamgenum=0
+timesut_total = np.array(result[0]['time'])     # In UTC
+time0global = timesut_total[0]
+time1global = timesut_total[0] + 60.0*10.0      # +15 minutes
+deltglobal = timesut_total[-1] - timesut_total[0]
+timestep = 10
+trange = np.arange(0, deltglobal, timestep)
+
 
 model_file = '/tmp/output_graph.pb'
 file_name = output_path+'/input.png'
@@ -104,22 +108,18 @@ output_name = "import/" + output_layer
 input_operation = graph.get_operation_by_name(input_name)
 output_operation = graph.get_operation_by_name(output_name)
 
-time0global = datetime(2017, 9, 2, 10, 38).timestamp()
-time1global = datetime(2017, 9, 2, 10, 43).timestamp() 
-deltglobal = time1global - time0global
-timestep=10
 
-for delt in np.arange(0, deltglobal, timestep):
+for img_index, tstep in enumerate(trange):
+
     ################################
-    #         Sort data
+    #     Select block of time. 
+    #     Shifts by tstep every iteration of the loop.
     #
-
-    time_start = time0global + delt
-    time_stop = time1global + delt
+    time_start = time0global + tstep
+    time_stop = time1global + tstep
     time_index = np.where( (timesut_total >= time_start) & (timesut_total <= time_stop))
     times_ut = timesut_total[time_index[0]]
     data = datatotal[::, time_index[0]] #mode 3 reading
-    
     delta_t = times_ut - times_ut[0]
     times_dt = [datetime.fromtimestamp(t) for t in times_ut]
 
@@ -139,8 +139,8 @@ for delt in np.arange(0, deltglobal, timestep):
     fig = plt.figure(1, frameon=False, figsize=(4,4))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
-    scl0 = data_resize.max()*0.75     #data_resize.mean() + data_resize.std()       # was data_resize.max()*0.75
-    scl1 = data_resize.max()*0.9      #data_resize.mean() + data_resize.std()*4.0   # data_resize.max()
+    scl0 = data_resize.max()*0.8     #data_resize.mean() + data_resize.std()       # was data_resize.max()*0.75
+    scl1 = data_resize.max()      #data_resize.mean() + data_resize.std()*4.0   # data_resize.max()
     ax.imshow(data_resize, cmap=plt.get_cmap('gray'), vmin=scl0, vmax=scl1)
     fig.savefig(file_name, transparent = True, bbox_inches = 'tight', pad_inches = 0)
     plt.close(fig)
@@ -158,7 +158,7 @@ for delt in np.arange(0, deltglobal, timestep):
     typeIIprob = np.array( [burst_probs[1][1]] )   
     typeIIIprob = np.array( [burst_probs[2][1]] )  
 
-    if delt==0:
+    if tstep==0:
         timprobs = delta_t[0:-1:timestep]
         type0probt = type0prob.repeat(len(timprobs))
         typeIIprobt = typeIIprob.repeat(len(timprobs))
@@ -176,7 +176,7 @@ for delt in np.arange(0, deltglobal, timestep):
     spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
     spec.t_label='Time (UT)'
     spec.f_label='Frequency (MHz)'
-    spec.plot(vmin=0.96, vmax=1.3, cmap=plt.get_cmap('Spectral_r'))
+    spec.plot(vmin=scl0, vmax=scl1, cmap=plt.get_cmap('Spectral_r'))
 
     #sns.set()
     #sns.set_style("darkgrid")
@@ -196,9 +196,7 @@ for delt in np.arange(0, deltglobal, timestep):
     plt.ylabel('Detection Probability')
     ax1.yaxis.label.set_size(10)
 
-
-    fig.savefig(output_path+'/image_'+str(format(iamgenum, '04'))+'.png')
-    iamgenum += 1
+    fig.savefig(output_path+'/image_'+str(format(img_index, '04'))+'.png')
     plt.close(fig)
 
 #ffmpeg -y -r 25 -i image_%04d.png -vb 50M classified.mpg
