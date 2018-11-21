@@ -41,7 +41,7 @@ def backsub(data):
     min_std_index = np.where(data_std==np.min( data_std[np.nonzero(data_std)] ))[0][0]
     min_std_spec = data[:, min_std_index]
     nfreq = len(min_std_spec)
-    data = np.divide(data, min_std_spec.reshape(nfreq,1))
+    data = np.divide(data, min_std_spec.reshape(nfreq, 1))
     #Alternative: Normalizing frequency channel responses using median of values.
     #for sb in np.arange(data.shape[0]):
     #       data[sb, :] = data[sb, :]/np.mean(data[sb, :])

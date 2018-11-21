@@ -64,7 +64,7 @@ def write_png_for_classifier(data, filename):
     #tophat_kernel = Tophat2DKernel(3)
     #data_smooth = convolve(data, tophat_kernel)
     data = data[::-1, ::]
-    data = spectro_process.rfi_removal(data, boxsz=1)
+    #data = spectro_process.rfi_removal(data, boxsz=1)
     data = spectro_process.backsub(data)
     scl0 = data.max()*0.8     #data_resize.mean() + data_resize.std()     
     scl1 = data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0
@@ -116,7 +116,7 @@ timesut_total = np.array(result[0]['time'])     # In UTC
 # Sort frequencies
 spectro = spectro[::-1, ::]                     # Reverse spectrogram. For plotting high -> low frequency
 freqs = freqs[::-1]                             # For plotting high -> low frequency
-indices = np.where(freqs <= 100.0)              # Taking only the LBA frequencies
+indices = np.where( (freqs>=20.0) & (freqs<=100.0) )              # Taking only the LBA frequencies
 freqs = freqs[indices[0]]
 spectro = spectro[indices[0], ::]
 
@@ -181,7 +181,7 @@ for img_index, tstep in enumerate(trange):
     ax0 = fig.add_axes([0.1, 0.11, 0.9, 0.6])
     data = spectro_process.backsub(data)
     spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
-    spec.plot(vmin=data.max()*0.7, 
+    spec.plot(vmin=data.max()*0.8, 
               vmax=data.max()*1.0, 
               cmap=plt.get_cmap('Spectral_r'))
     ax1 = fig.add_axes([0.1, 0.72, 0.72, 0.25])
@@ -203,5 +203,5 @@ for img_index, tstep in enumerate(trange):
 
     fig.savefig(output_path+'/image_'+str(format(img_index, '04'))+'.png')
     plt.close(fig)
-    pdb.set_trace()
+    #pdb.set_trace()
 #ffmpeg -y -r 25 -i image_%04d.png -vb 50M classified.mpg
