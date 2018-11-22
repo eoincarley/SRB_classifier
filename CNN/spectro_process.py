@@ -18,20 +18,21 @@
 import numpy as np
 from scipy import ndimage
 
-def rfi_removal(image, boxsz=5):
+def rfi_removal(image, boxsz=1):
     sx = ndimage.sobel(image, axis=0, mode='constant')
     sy = ndimage.sobel(image, axis=1, mode='constant')
     data_sobel = np.abs(np.hypot(sx, sy))
     thold = data_sobel.mean() + data_sobel.std()*1.0
     indices = np.where(data_sobel>thold)
+    new_image = image
     for index, value in enumerate(indices[0]):
         xind = indices[1][index]
         yind = indices[0][index]
-        box = np.clip([yind-boxsz*2, yind+boxsz*2, xind-boxsz, xind+boxsz], 0, np.shape(image)[0]-1)
+        box = np.clip([yind-boxsz*5, yind+boxsz*5, xind-boxsz, xind+boxsz], 0, np.shape(image)[0]-1)
         section = image[  box[0]:box[1], box[2]:box[3] ]
-        image[box[0]:box[1], box[2]:box[3]] = np.median(section)
+        new_image[box[0]:box[1], box[2]:box[3]] = np.median(section)
 
-    return image     
+    return new_image     
 
 def backsub(data):
     # Devide each spectrum by the spectrum with the minimum standard deviation.

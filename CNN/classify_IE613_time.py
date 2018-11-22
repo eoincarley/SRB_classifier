@@ -64,8 +64,8 @@ def write_png_for_classifier(data, filename):
     #tophat_kernel = Tophat2DKernel(3)
     #data_smooth = convolve(data, tophat_kernel)
     data = data[::-1, ::]
-    #data = spectro_process.rfi_removal(data, boxsz=1)
-    data = spectro_process.backsub(data)
+    data = spectro_process.rfi_removal(data, boxsz=1)
+    #data = spectro_process.backsub(data)
     scl0 = data.max()*0.8     #data_resize.mean() + data_resize.std()     
     scl1 = data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0
     # Note these intensity scaling factors are important. If the background is not clipped away, 
@@ -90,7 +90,7 @@ def write_png_for_classifier(data, filename):
 IE613_file = '20170902_103626_bst_00X.npy'
 event_date = IE613_file.split('_')[0]
 file_path = 'classify_'+event_date+'/'
-output_path = file_path+'/trial2/'
+output_path = file_path+'/trial3/'
 model_file = '/tmp/output_graph.pb'
 png_file = output_path+'/input.png'             # PNG that is output by write_png_for_classifier and ingested by tf_label.
 input_height = 299
@@ -116,13 +116,15 @@ timesut_total = np.array(result[0]['time'])     # In UTC
 # Sort frequencies
 spectro = spectro[::-1, ::]                     # Reverse spectrogram. For plotting high -> low frequency
 freqs = freqs[::-1]                             # For plotting high -> low frequency
+spectro = spectro_process.backsub(spectro)
 indices = np.where( (freqs>=20.0) & (freqs<=100.0) )              # Taking only the LBA frequencies
 freqs = freqs[indices[0]]
 spectro = spectro[indices[0], ::]
 
 # Sort time
-time0global = timesut_total[0]
-time1global = timesut_total[0] + 60.0*10.0      # +15 minutes
+time_start = timesut_total[0] #datetime(2017, 9, 2, 10, 46, 0).timestamp() 
+time0global = time_start 
+time1global = time_start  + 60.0*10.0      # +15 minutes
 deltglobal = timesut_total[-1] - timesut_total[0]
 trange = np.arange(0, deltglobal, timestep)
 
@@ -179,10 +181,11 @@ for img_index, tstep in enumerate(trange):
     #   
     fig = plt.figure(2, figsize=(10,7))
     ax0 = fig.add_axes([0.1, 0.11, 0.9, 0.6])
-    data = spectro_process.backsub(data)
+    #data = spectro_process.backsub(data)
+    data = spectro_process.rfi_removal(data, boxsz=1)
     spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
-    spec.plot(vmin=data.max()*0.8, 
-              vmax=data.max()*1.0, 
+    spec.plot(vmin=data.max()*0.7, 
+              vmax=data.max()*0.9, 
               cmap=plt.get_cmap('Spectral_r'))
     ax1 = fig.add_axes([0.1, 0.72, 0.72, 0.25])
     spec.t_label='Time (UT)'
@@ -203,5 +206,5 @@ for img_index, tstep in enumerate(trange):
 
     fig.savefig(output_path+'/image_'+str(format(img_index, '04'))+'.png')
     plt.close(fig)
-    #pdb.set_trace()
+    
 #ffmpeg -y -r 25 -i image_%04d.png -vb 50M classified.mpg
