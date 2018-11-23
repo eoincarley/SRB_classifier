@@ -66,8 +66,8 @@ def write_png_for_classifier(data, filename):
     data = data[::-1, ::]
     data = spectro_process.rfi_removal(data, boxsz=1)
     #data = spectro_process.backsub(data)
-    scl0 = data.max()*0.8     #data_resize.mean() + data_resize.std()     
-    scl1 = data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0
+    scl0 = data_resize.mean() + data_resize.std()     #data.max()*0.8     #data_resize.mean() + data_resize.std()     
+    scl1 = data_resize.mean() + data_resize.std()*4.0 #data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0
     # Note these intensity scaling factors are important. If the background is not clipped away, 
     # the classifier is not successful. Only the most intense bursts in the image are classified. 
     # This is because the training data had to be clipped quite harshly to train the CNN.
@@ -122,7 +122,7 @@ freqs = freqs[indices[0]]
 spectro = spectro[indices[0], ::]
 
 # Sort time
-time_start = timesut_total[0] #datetime(2017, 9, 2, 10, 46, 0).timestamp() 
+time_start = datetime(2017, 9, 2, 18, 00, 0).timestamp() #timesut_total[0] #datetime(2017, 9, 2, 10, 46, 0).timestamp() 
 time0global = time_start 
 time1global = time_start  + 60.0*10.0      # +15 minutes
 deltglobal = timesut_total[-1] - timesut_total[0]
