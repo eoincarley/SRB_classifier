@@ -2,19 +2,21 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pdb
+
 import scipy.ndimage.filters as smooth
 from astropy.convolution import convolve, Tophat2DKernel
+from numpy import random
 
 
+def embed_typeIII(image, trange=[10,490], head_range=[0,200], tail_range=[300,499], intensity=1):
 
-def embed_typeIII(image, trange=[10,490], head_range=[0,200], tail_range=[300,499]):
-
+	img_sz = np.shape(image)[0]
 	t0 = random.randint(trange[0], trange[1])  	# Position of the type III head (top) in time.
-	f0 = random.randint(300,499)    # Position of the type III head (top) in frequency.
+	f0 = random.randint(tail_range[0], tail_range[1])    # Position of the type III head (top) in frequency.
 	f1 = random.randint(head_range[0], head_range[1])		# Position of the type III tail (bottom) in frequency.
 	nfreqs = f0-f1
 
-	times = np.linspace(0, 499, 1000)
+	times = np.linspace(0, img_sz-1, 1000)
 	frange = np.arange(int(f1), int(f0))
 	drift_range = np.linspace(1, 5, len(frange))
 	base_driftrate = random.randint(10,30)
@@ -54,7 +56,7 @@ def embed_typeIII(image, trange=[10,490], head_range=[0,200], tail_range=[300,49
 		# Now embed the constructed flux profile at frequency f in the image.
 		time_pos = int(xdrift[index])
 		x0 = time_pos
-		x1 = np.clip(time_pos+30, 0, 499)
+		x1 = np.clip(time_pos+30, 0, img_sz-1)
 		xlen = x1-x0
 
 		img_decayx0 = time_pos
@@ -62,8 +64,14 @@ def embed_typeIII(image, trange=[10,490], head_range=[0,200], tail_range=[300,49
 		img_risex0 = time_pos-flux.argmax()
 		img_risex1 = time_pos
 		
-		image[f, img_decayx0:img_decayx1] = image[f, img_decayx0:img_decayx1]+flux[flux.argmax():flux.argmax()+xlen]
-		image[f, img_risex0:img_risex1] = image[f, img_risex0:img_risex1]+flux[0:flux.argmax()]
+		print(' %s %s %s %s'  %(img_decayx0, img_decayx1, img_risex0, img_risex1)  )
+		deltx0 = img_decayx1 - img_decayx0
+		deltx1 = img_risex1 - img_risex0
+		print(deltx0)
+		print(deltx1)
+		if deltx0>1 and deltx1>1:
+			image[f, img_decayx0:img_decayx1] = image[f, img_decayx0:img_decayx1]+flux[flux.argmax():flux.argmax()+xlen]*intensity
+			image[f, img_risex0:img_risex1] = image[f, img_risex0:img_risex1]+flux[0:flux.argmax()]*intensity
 
 	return image	
 
@@ -135,7 +143,7 @@ image =  image + backg
 
 '''---------------------------------
  Following characteristics produce a cluster 
- of type IIs together, as often occurs.
+ of type IIIs together, as often occurs.
 '''
 cluster_type = random.randint(0,3)
 nbursts = burst_cluster( cluster_type )['nbursts']
@@ -143,13 +151,14 @@ trange = burst_cluster( cluster_type )['trange']
 head_range = burst_cluster( cluster_type )['head_range']
 tail_range = burst_cluster( cluster_type )['tail_range']
 
+
 for i in np.arange(0, nbursts): 
 	image=embed_typeIII(image, 
 		trange=trange, head_range=head_range, tail_range=tail_range)
 
 for i in np.arange(0, 60): image=embed_rfi(image, frange=[0, 80], itensity=45)
 for i in np.arange(0, 5): image=embed_rfi(image, frange=[250, 270], itensity=25)
-for i in np.arange(0, 10): image=embed_rfi(image, frange=[400, 450], itensity=25)
+for i in np.arange(0, 10): image=embed_rfi(image, frange=[400, 450], itensity=30)
 tophat_kernel = Tophat2DKernel(2)
 image = convolve(image, tophat_kernel)
 for i in np.arange(0, 100): image=embed_rfi(image, itensity=10)
