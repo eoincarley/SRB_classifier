@@ -64,10 +64,10 @@ def write_png_for_classifier(data, filename):
     #tophat_kernel = Tophat2DKernel(3)
     #data_smooth = convolve(data, tophat_kernel)
     data = data[::-1, ::]
-    data = spectro_process.rfi_removal(data, boxsz=1)
-    #data = spectro_process.backsub(data)
-    scl0 = data_resize.mean() + data_resize.std()     #data.max()*0.8     #data_resize.mean() + data_resize.std()     
-    scl1 = data_resize.mean() + data_resize.std()*4.0 #data.max()*0.9     #data_resize.mean() + data_resize.std()*4.0
+    #data = spectro_process.rfi_removal(data, boxsz=1)
+    data = spectro_process.backsub(data)
+    scl0 = data.mean() #+ data.std()     
+    scl1 = data.mean() + data.std()*4.0
     # Note these intensity scaling factors are important. If the background is not clipped away, 
     # the classifier is not successful. Only the most intense bursts in the image are classified. 
     # This is because the training data had to be clipped quite harshly to train the CNN.
@@ -76,6 +76,7 @@ def write_png_for_classifier(data, filename):
     #
     #    Write png that will be ingested by Tensorflow trained model
     #    
+    data[::]=1.0
     fig = plt.figure(1, frameon=False, figsize=(4,4))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.axis('off')
@@ -90,7 +91,7 @@ def write_png_for_classifier(data, filename):
 IE613_file = '20170902_103626_bst_00X.npy'
 event_date = IE613_file.split('_')[0]
 file_path = 'classify_'+event_date+'/'
-output_path = file_path+'/trial3/'
+output_path = file_path+'/trial4/'
 model_file = '/tmp/output_graph.pb'
 png_file = output_path+'/input.png'             # PNG that is output by write_png_for_classifier and ingested by tf_label.
 input_height = 299
@@ -116,13 +117,13 @@ timesut_total = np.array(result[0]['time'])     # In UTC
 # Sort frequencies
 spectro = spectro[::-1, ::]                     # Reverse spectrogram. For plotting high -> low frequency
 freqs = freqs[::-1]                             # For plotting high -> low frequency
-spectro = spectro_process.backsub(spectro)
+#spectro = spectro_process.backsub(spectro)
 indices = np.where( (freqs>=20.0) & (freqs<=100.0) )              # Taking only the LBA frequencies
 freqs = freqs[indices[0]]
 spectro = spectro[indices[0], ::]
 
 # Sort time
-time_start = datetime(2017, 9, 2, 18, 00, 0).timestamp() #timesut_total[0] #datetime(2017, 9, 2, 10, 46, 0).timestamp() 
+time_start = datetime(2017, 9, 2, 18, 25, 0).timestamp() #timesut_total[0] #datetime(2017, 9, 2, 10, 46, 0).timestamp() 
 time0global = time_start 
 time1global = time_start  + 60.0*10.0      # +15 minutes
 deltglobal = timesut_total[-1] - timesut_total[0]
@@ -160,19 +161,19 @@ for img_index, tstep in enumerate(trange):
     # 
     burst_probs = tf_label(graph, png_file, label_file)
     type0prob = np.array( [burst_probs[0][1]] )   
-    typeIIprob = np.array( [burst_probs[1][1]] )   
-    typeIIIprob = np.array( [burst_probs[2][1]] )  
+    typeIIIprob = np.array( [burst_probs[1][1]] )   
+    #typeIIIprob = np.array( [burst_probs[2][1]] )  
     #
     ######################################################
 
     if tstep==0:
         timprobs = delta_t[0:-1:timestep]
         type0probt = type0prob.repeat(len(timprobs))
-        typeIIprobt = typeIIprob.repeat(len(timprobs))
+        #typeIIprobt = typeIIprob.repeat(len(timprobs))
         typeIIIprobt = typeIIIprob.repeat(len(timprobs))
     else:
         type0probt = np.concatenate( (type0probt[1::], type0prob) )  
-        typeIIprobt = np.concatenate( (typeIIprobt[1::], typeIIprob) )  
+       # typeIIprobt = np.concatenate( (typeIIprobt[1::], typeIIprob) )  
         typeIIIprobt = np.concatenate( (typeIIIprobt[1::], typeIIIprob) )  
 
     #-------------------------------------#
@@ -182,7 +183,7 @@ for img_index, tstep in enumerate(trange):
     fig = plt.figure(2, figsize=(10,7))
     ax0 = fig.add_axes([0.1, 0.11, 0.9, 0.6])
     #data = spectro_process.backsub(data)
-    data = spectro_process.rfi_removal(data, boxsz=1)
+    #data = spectro_process.rfi_removal(data, boxsz=1)
     spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
     spec.plot(vmin=data.max()*0.7, 
               vmax=data.max()*0.9, 
@@ -192,10 +193,10 @@ for img_index, tstep in enumerate(trange):
     spec.f_label='Frequency (MHz)'
 
     plt.plot(timprobs, type0probt, color='blue')
-    plt.plot(timprobs, typeIIprobt, color='red')
+    #plt.plot(timprobs, typeIIprobt, color='red')
     plt.plot(timprobs, typeIIIprobt, color='green')
     add_label(timprobs, type0probt, 'No burst')
-    add_label(timprobs, typeIIprobt, 'Type II')
+    #add_label(timprobs, typeIIprobt, 'Type II')
     add_label(timprobs, typeIIIprobt, 'Type III')
     ax1.set_ylim([0, 1])
     ax1.autoscale(enable=True, axis='x', tight=True)

@@ -12,23 +12,31 @@ poly=np.polynomial.polynomial.polyval
 def embed_typeII(image):
 
 	img_sz = np.shape(image)[0]
-	t0 = random.randint(20, img_sz/2-10)
-	t1 = random.randint(img_sz/2+10, img_sz-10)
+	t0 = random.randint(20, img_sz-220)
+	t1 = random.randint(t0+200., img_sz-10)
 	f0 = random.randint(20, img_sz-20)
 	times = np.linspace(t0, t1, 300, dtype=int)
 
-	drift_range = 1.2/np.linspace(1, 2, len(times))**1.0
+	drif_parm0 = random.uniform(1.2, 1.8)
+	drif_parm1 = random.uniform(1.0, 1.8)
+	drift_range = drif_parm0/np.linspace(1, 2, len(times))**drif_parm1
 
 	timeszero = times - times[0]
 	freqs = np.array(f0-timeszero*drift_range, dtype=int)
 
 	x = np.linspace(0, 2*np.pi, len(times))
 	
-	env1 = np.abs(np.sin(x*4))
-	env2 = np.abs(np.sin(x*4))
-	for i in np.arange(1,5):
-		env1 = env1 + (1/i)*np.sin(i*x*3) 
-		env2 = env2 + (1/i)*abs(np.sin(x*i*2))
+	env_phase1 = random.randint(1,4)
+	env_phase2 = random.randint(1,4)
+	env_phase3 = random.randint(1,4)
+	env_phase4 = random.randint(1,4)
+	env1 = np.abs(np.sin(x*env_phase1))
+	env2 = np.abs(np.sin(x*env_phase2))
+
+	nenvs = random.randint(1,7)
+	for i in np.arange(1,nenvs):
+		env1 = env1 + (1/i)*np.sin(i*x*env_phase3) 
+		env2 = env2 + (1/i)*abs(np.sin(x*i*env_phase4))
 
 	env1 = env1-env1.min()
 	env1 = np.clip(env1/env1.max(), 0.01, 1)
@@ -49,8 +57,8 @@ def embed_typeII(image):
 	scales1 = bw_env*env1*5
 	scales2 = bw_env*env2*5
 	
-	width_left = random.uniform(0.1, 2.5)
-	width_right = random.uniform(0.1, 1.0)
+	width_left = random.uniform(0.8, 2.0)
+	width_right = random.uniform(0.8, 1.0)
 	typeIII_scales = np.linspace(width_left, width_right, len(times))		
 	
 	hdispl = np.linspace(150, 100, len(times))	
@@ -96,6 +104,14 @@ def embed_rfi(image, frange=[0, 499], itensity=25):
 
 	return image
 
+def embed_rfi_block(image, itensity=25):
+	t0 = random.randint(1,490)
+	f0 = random.randint(1,490)
+	blocktsz = random.randint(2,50)
+	blockfsz = random.randint(1,5)
+	image[f0:f0+blockfsz, t0:t0+blocktsz] = itensity
+
+	return image
 
 
 
@@ -119,51 +135,52 @@ def backsub(data):
 #			Main procedure
 #
 #
-# Product an image, add background Gaussian noise and antenna frequency response
-img_sz=600
-image = np.zeros([img_sz, img_sz])
-image[::] = 1.0
+if __name__=="__main__":
+	# Product an image, add background Gaussian noise and antenna frequency response
 
-image = image + 10.0*np.random.normal(1.0, 0.5, image.shape)
-backg = 1.0 + np.sin(np.linspace(0, np.pi, img_sz))*4
-backg = [backg, backg]
-backg = np.transpose(np.repeat(backg, img_sz/2, axis=0))
-image =  image + backg
+	nsamples = 3000
+	img_sz=600
+	for img_index in np.arange(1549, nsamples):
+		image = np.zeros([img_sz, img_sz])
+		image[::] = 1.0
 
+		image = image + 10.0*np.random.normal(1.0, 0.5, image.shape)
+		backg = 1.0 + np.sin(np.linspace(0, np.pi, img_sz))*4
+		backg = [backg, backg]
+		backg = np.transpose(np.repeat(backg, img_sz/2, axis=0))
+		image =  image + backg
 
-image = embed_typeII(image)
-image[np.isnan(image)]=1
-typeII_flux = random.randint(0,20)
-image = typeII_flux*image/image.max()
+		image = embed_typeII(image)
+		image[np.isnan(image)]=1
+		typeII_flux = random.randint(1,18)
+		image = typeII_flux*image/image.max()
+		image = image[50:550, 50:550]
 
+		randrfi = random.randint(0, 10)
+		for i in np.arange(0, randrfi): image=embed_rfi(image, itensity=10)
+		for i in np.arange(0, randrfi): image=embed_rfi(image, frange=[0, 80], itensity=25)
+		for i in np.arange(0, 5): image=embed_rfi(image, frange=[250, 270], itensity=25)
+		for i in np.arange(0, 5): image=embed_rfi(image, frange=[400, 450], itensity=25)	
+		randrfi = random.randint(0, 5)
+		for i in np.arange(0, randrfi): image=embed_rfi_block(image, itensity=10)
+		tophat_kernel = Tophat2DKernel(2)
+		image = convolve(image, tophat_kernel)
 
-'''---------------------------------
- Following characteristics produce a cluster 
- of type IIIs together, as often occurs.
+		image = backsub(image)
 
-cluster_type = random.randint(0,3)
-nbursts = burst_cluster( cluster_type )['nbursts']
-trange = burst_cluster( cluster_type )['trange']
-head_range = burst_cluster( cluster_type )['head_range']
-tail_range = burst_cluster( cluster_type )['tail_range']
-
-
-for i in np.arange(0, nbursts): 
-	image=embed_typeIII(image, 
-		trange=trange, head_range=head_range, tail_range=tail_range)
-'''
-
-image = image[50:550, 50:550]
-for i in np.arange(0, 60): image=embed_rfi(image, frange=[0, 80], itensity=20)
-for i in np.arange(0, 5): image=embed_rfi(image, frange=[250, 270], itensity=15)
-for i in np.arange(0, 10): image=embed_rfi(image, frange=[400, 450], itensity=10)
-tophat_kernel = Tophat2DKernel(3)
-image = convolve(image, tophat_kernel)
-for i in np.arange(0, 100): image=embed_rfi(image, itensity=10)
-
-image = backsub(image)
-
-fig = plt.figure(0)
-#vmax = 15 for no backsub
-plt.imshow(image, vmin=0, vmax=20, cmap=plt.get_cmap('Spectral_r'))
-plt.show()
+		#fig = plt.figure(0)
+		#vmax = 15 for no backsub
+		#plt.imshow(image, vmin=0, vmax=20, cmap=plt.get_cmap('Spectral_r'))
+		#plt.show()
+		#-------------------------------------------------------------------#
+		#
+		#    Write png that will be ingested by Tensorflow trained model
+		#    
+		png_file = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/simulations/typeII/image_'+str(format(img_index, '04'))+'.jpg'
+		print('Saving %s' %(png_file))
+		fig = plt.figure(1, frameon=False, figsize=(4,4))
+		ax = fig.add_axes([0, 0, 1, 1])
+		ax.axis('off')
+		ax.imshow(image, cmap=plt.get_cmap('gray'), vmin=1.0, vmax=15.0)
+		fig.savefig(png_file, transparent = True, bbox_inches = 'tight', pad_inches = 0)
+		plt.close(fig)

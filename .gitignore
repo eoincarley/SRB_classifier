@@ -6,3 +6,4 @@ CNN/classify_20170910/*
 CNN/examples/*
 CNN/training_imgs/*
 CNN/__pycache__/*
+simulations/*
