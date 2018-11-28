@@ -207,5 +207,5 @@ for img_index, tstep in enumerate(trange):
 
     fig.savefig(output_path+'/image_'+str(format(img_index, '04'))+'.png')
     plt.close(fig)
-    
+    pdb.set_trace()
 #ffmpeg -y -r 25 -i image_%04d.png -vb 50M classified.mpg

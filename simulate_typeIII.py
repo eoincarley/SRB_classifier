@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import pdb
 
 import scipy.ndimage.filters as smooth
@@ -12,8 +13,8 @@ def embed_typeIII(image, trange=[10,490], head_range=[0,200], tail_range=[300,49
 
 	img_sz = np.shape(image)[0]
 	t0 = random.randint(trange[0], trange[1])  	# Position of the type III head (top) in time.
-	f0 = random.randint(tail_range[0], tail_range[1])    # Position of the type III head (top) in frequency.
-	f1 = random.randint(head_range[0], head_range[1])		# Position of the type III tail (bottom) in frequency.
+	f0 = random.randint(tail_range[0], tail_range[1])    # Position of the type III tail (bottom) in frequency.
+	f1 = random.randint(head_range[0], head_range[1])		# Position of the type III head (top) in frequency.
 	nfreqs = f0-f1
 
 	times = np.linspace(0, img_sz-1, 1000)
@@ -37,6 +38,9 @@ def embed_typeIII(image, trange=[10,490], head_range=[0,200], tail_range=[300,49
 	tail_indices = np.arange( int(len(frange)*0.4), int(len(frange)-1))
 	peak_flux_at_f[tail_indices] = random.randint(0, randpeak, len(tail_indices))
 	peak_flux_at_f = smooth.gaussian_filter1d(peak_flux_at_f, 6)
+
+	envelope=np.linspace(random.uniform(0.3, 1), 1, len(peak_flux_at_f)) # Sometimes the type III will fade as it increases in frequency.
+	peak_flux_at_f = envelope*peak_flux_at_f
 	#peak_flux_at_f = random.randint(0, randpeak, len(frange))   # For adding a randomness to the type III intensity along it's body.
 
 	rise_time = 1.0  # Travelling across time for a particular frequency, 
@@ -72,7 +76,14 @@ def embed_typeIII(image, trange=[10,490], head_range=[0,200], tail_range=[300,49
 			image[f, img_decayx0:img_decayx1] = image[f, img_decayx0:img_decayx1]+flux[flux.argmax():flux.argmax()+xlen]*intensity
 			image[f, img_risex0:img_risex1] = image[f, img_risex0:img_risex1]+flux[0:flux.argmax()]*intensity
 
-	return image	
+
+	boxx0 = t0-5
+	boxy0 = f1
+	lenx = 40
+	leny = f0-f1
+	bounding_box = [boxx0, boxy0, lenx, leny]
+	
+	return image, bounding_box 	
 
 
 def embed_rfi(image, frange=[0,499], itensity=25):
@@ -104,7 +115,7 @@ def burst_cluster(i):
 	    		   'trange':[cluster_t0, cluster_t0+120], 
 	    		   'head_range':[0,50],
 	    		   'tail_range':[480,499]},
-	    # Random	   
+		# Random	   
 	    1:{'nbursts':random.randint(2, 10), 
 	    		   'trange':[15, 480], 
 	    		   'head_range':[0,200],
@@ -143,7 +154,7 @@ if __name__=="__main__":
 	# Product an image, add background Gaussian noise and antenna frequency response
 	img_sz = 500
 	image = np.zeros([img_sz, img_sz])
-	nsamples = 3000
+	nsamples = 5000
 
 	for img_index in np.arange(0, nsamples):
 		image[::] = 1.0
@@ -158,15 +169,21 @@ if __name__=="__main__":
 		 Following characteristics produce a cluster 
 		 of type IIIs together, as often occurs.
 		'''
-		cluster_type = random.randint(0,3)
+		cluster_type = random.randint(1,3)
 		nbursts = burst_cluster( cluster_type )['nbursts']
 		trange = burst_cluster( cluster_type )['trange']
 		head_range = burst_cluster( cluster_type )['head_range']
 		tail_range = burst_cluster( cluster_type )['tail_range']
 
+
 		for i in np.arange(0, nbursts): 
-			image=embed_typeIII(image, 
+			image, bbox = embed_typeIII(image, 
 				trange=trange, head_range=head_range, tail_range=tail_range)
+			if i==0:
+				bboxes = [bbox] 
+			else:
+				bboxes.append(bbox)	
+			
 		
 		randrfi = random.randint(0, 10)
 		for i in np.arange(0, randrfi): image=embed_rfi(image, itensity=10)
@@ -186,12 +203,31 @@ if __name__=="__main__":
 		#
 		#    Write png that will be ingested by Tensorflow trained model
 		#    
-		png_file = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/simulations/typeIII/image_'+str(format(img_index, '04'))+'.jpg'
+		root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/darknet/data/typeIII/'
+		png_file = root+'image_'+str(format(img_index, '04'))+'.png'
+		txt_file = root+'image_'+str(format(img_index, '04'))+'.txt'
 		print('Saving %s' %(png_file))
 		fig = plt.figure(1, frameon=False, figsize=(4,4))
 		ax = fig.add_axes([0, 0, 1, 1])
 		ax.axis('off')
 		ax.imshow(image, cmap=plt.get_cmap('gray'), vmin=1.0, vmax=4.0)
+
+		#--------------------------------------------#
+		#	Make the coord of feature for DarkNet
+		#
+		file = open(txt_file, "w")
+		for bbox in bboxes:
+			#rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], linewidth=1,edgecolor='r',facecolor='none')	
+			#ax.add_patch(rect)
+			xcen = bbox[0]+bbox[2]/2.0
+			ycen = bbox[1]+bbox[3]/2.0
+			dnet_coords = np.array([xcen, ycen, bbox[2], bbox[3]])/img_sz
+			txt_coords = "0 "+str(dnet_coords[0])+" "+str(dnet_coords[1])+" "+str(dnet_coords[2])+" "+str(dnet_coords[3])+"\n"
+			print(txt_coords)
+			file.write(txt_coords)
+		
+		file.close()
+
 		fig.savefig(png_file, transparent = True, bbox_inches = 'tight', pad_inches = 0)
 		plt.close(fig)
 

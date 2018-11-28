@@ -74,7 +74,7 @@ def build_1Dimg(files, burst_type):
 			imgs1D=[data]
 		else:	
 			imgs1D=np.concatenate((imgs1D, [data]))
-		print('Reformated %s' %(file))
+		print('Reformatted %s' %(file))
 	types = np.repeat(burst_type, imgs1D.shape[0]) # Labels for the expect output given an image
 	return imgs1D, types		
 
@@ -106,15 +106,15 @@ if __name__=="__main__":
 	# Following images are cosntructed from dynamic spectra downloaded from RSTN archives.
 	# Burst times and types were from the SWPC event lists. List not always accurate, so watch
 	# out for mislabels.
-	type0files=glob.glob('radio_bursts/type0/*.jpeg') 
+	type0files=glob.glob('radio_bursts/type0/*.*') 
 	type0files_train = type0files[0:-ntest]
 	type0files_test = type0files[-ntest::]
 
-	typeIIfiles=glob.glob('radio_bursts/typeII/*.jpeg')
+	typeIIfiles=glob.glob('radio_bursts/typeII/*.*')
 	typeIIfiles_train = typeIIfiles[0:-ntest]
 	typeIIfiles_test = typeIIfiles[-ntest::]
 
-	typeIIIfiles=glob.glob('radio_bursts/typeIII/*.jpeg')
+	typeIIIfiles=glob.glob('radio_bursts/typeIII/*.*')
 	typeIIIfiles_train = typeIIIfiles[0:-ntest]
 	typeIIIfiles_test = typeIIIfiles[-ntest::]
 

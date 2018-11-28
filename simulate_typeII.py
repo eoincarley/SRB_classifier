@@ -140,7 +140,7 @@ if __name__=="__main__":
 
 	nsamples = 3000
 	img_sz=600
-	for img_index in np.arange(1549, nsamples):
+	for img_index in np.arange(0, nsamples):
 		image = np.zeros([img_sz, img_sz])
 		image[::] = 1.0
 
@@ -152,7 +152,7 @@ if __name__=="__main__":
 
 		image = embed_typeII(image)
 		image[np.isnan(image)]=1
-		typeII_flux = random.randint(1,18)
+		typeII_flux = random.randint(3,18)
 		image = typeII_flux*image/image.max()
 		image = image[50:550, 50:550]
 
@@ -176,7 +176,7 @@ if __name__=="__main__":
 		#
 		#    Write png that will be ingested by Tensorflow trained model
 		#    
-		png_file = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/simulations/typeII/image_'+str(format(img_index, '04'))+'.jpg'
+		png_file = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/simulations/typeII/image_'+str(format(img_index, '04'))+'.png'
 		print('Saving %s' %(png_file))
 		fig = plt.figure(1, frameon=False, figsize=(4,4))
 		ax = fig.add_axes([0, 0, 1, 1])
