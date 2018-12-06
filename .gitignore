@@ -7,4 +7,4 @@ CNN/examples/*
 CNN/training_imgs/*
 CNN/__pycache__/*
 simulations/*
-Darknet/*
+darknet/data/*
