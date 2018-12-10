@@ -28,10 +28,11 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 	xdrift = t0 + base_driftrate/drift_range 		# In pixel units. Responsible for how 'curved' the head is.
 	#xdrift = np.linspace(t0, t0-driftrate, len(frange))
 
-	headsize = random.randint(1, 10) 
-	tailsize = random.uniform(0.1, 6)       						# Controls how much the head of the type III decays away -> how fat the head is.
-	tspread0 = np.linspace(0, headsize, 20)  					# The first ten pixels of the head get fatter
-	tspread1 = np.linspace(headsize, tailsize, len(frange[20::]))   	# After first ten pixels it get smaller and decays to 0.1
+	headsize = random.randint(1, 10) 	# Controls how much the head of the type III decays away -> how fat the head is.
+	tailsize = random.uniform(0.1, 5)     
+	turnover = random.randint(3, 100)     # Controls how long the head is in time 						
+	tspread0 = np.linspace(0, headsize, turnover)  					# The first ten pixels of the head get fatter
+	tspread1 = np.linspace(headsize, tailsize, len(frange[turnover::]))   	# After first ten pixels it get smaller and decays to 0.1
 	tspread = np.concatenate((tspread0, tspread1))
 
 
@@ -43,7 +44,7 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 	peak_flux_at_f[tail_indices] = random.randint(0, randpeak, len(tail_indices))
 	peak_flux_at_f = smooth.gaussian_filter1d(peak_flux_at_f, 6)
 
-	envelope=np.linspace(random.uniform(0.1, 1), 1, len(peak_flux_at_f)) # Sometimes the type III will fade as it increases in frequency.
+	envelope = np.linspace(random.uniform(0.1, 1), 1, len(peak_flux_at_f)) # Sometimes the type III will fade as it increases in frequency.
 	peak_flux_at_f = envelope*peak_flux_at_f
 	#peak_flux_at_f = random.randint(0, randpeak, len(frange))   # For adding a randomness to the type III intensity along it's body.
 
@@ -65,7 +66,7 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 		# Now embed the constructed flux profile at frequency f in the image.
 		time_pos = int(xdrift[index])
 		x0 = time_pos
-		x1 = np.clip(time_pos+30, 0, img_sz-1)
+		x1 = np.clip(time_pos+100, 0, img_sz-1)
 		xlen = x1-x0
 
 		img_decayx0 = time_pos
@@ -90,9 +91,9 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 
 	print(no_embed)
 	if no_embed>len(frange)*0.9: embed_fail=True
-	boxx0 = t0-5
+	boxx0 = t0-10
 	boxy0 = f1
-	lenx = 35
+	lenx = 40
 	leny = f0-f1
 	bounding_box = [boxx0, boxy0, lenx, leny]
 	
@@ -102,14 +103,14 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 def embed_rfi(image, frange=[0,415], itensity=25):
 	frfi = random.randint(frange[0], frange[1])
 	sampling = random.randint(1,100)
-	image[frfi, np.arange(0,415, sampling)] = itensity
+	image[frfi, np.arange(0, np.shape(image)[0]-1, sampling)] = itensity
 
 	return image
 
 
 def embed_rfi_block(image, itensity=25):
-	t0 = random.randint(1,410)
-	f0 = random.randint(1,410)
+	t0 = random.randint(1, np.shape(image)[0]-1)
+	f0 = random.randint(1, np.shape(image)[0]-1)
 	blocktsz = random.randint(2,50)
 	blockfsz = random.randint(1,5)
 	image[f0:f0+blockfsz, t0:t0+blocktsz] = itensity
@@ -117,27 +118,27 @@ def embed_rfi_block(image, itensity=25):
 	return image
 
 
-def burst_cluster(i):
+def burst_cluster(i, img_sz):
 
 	# This function is for choosing/randomising burst cluster characteristics e.g.,
 	# whether ot not it's a single burst, a cluster or randomly distributed.
-	cluster_t0=random.randint(15, 350)
+	cluster_t0=random.randint(10, img_sz-130)
 	switcher={
 		# Compact cluster
 	    0:{'nbursts':random.randint(2, 10), 
 	    		   'trange':[cluster_t0, cluster_t0+120], 
 	    		   'head_range':[0,50],
-	    		   'tail_range':[380,400]},
+	    		   'tail_range':[img_sz-50,img_sz-10]},
 		# Random	   
-	    1:{'nbursts':random.randint(2, 4), 
-	    		   'trange':[5, 490], 
+	    1:{'nbursts':random.randint(2, 3), 
+	    		   'trange':[5, img_sz-20], 
 	    		   'head_range':[0,200],
-	    		   'tail_range':[300,400]},
+	    		   'tail_range':[img_sz-50,img_sz-10]},
 	    # Single		   
 	    2:{'nbursts':1, 
-	    		   'trange':[5, 400], 
+	    		   'trange':[5, img_sz-20], 
 	    		   'head_range':[0,200],
-	    		   'tail_range':[300,400]}
+	    		   'tail_range':[img_sz-50,img_sz-10]}
 	     }
 	return switcher.get(i, "Invalid burst cluster")
 
@@ -165,11 +166,11 @@ def backsub(data):
 if __name__=="__main__":
 	
 	# Product an image, add background Gaussian noise and antenna frequency response
-	img_sz = 416
+	img_sz = 512
 	image = np.zeros([img_sz, img_sz])
-	nsamples = 5000
+	nsamples = 10000
 
-	for img_index in np.arange(0, nsamples):
+	for img_index in np.arange(4000, 5000):
 		image[::] = 1.0
 
 		#image = image+np.random.normal(1, 0.5, image.shape)
@@ -177,57 +178,52 @@ if __name__=="__main__":
 		backg = [backg, backg]
 		backg = np.transpose(np.repeat(backg, img_sz/2, axis=0))
 		image =  image + backg
+	
+		randrfi = random.randint(40, 100)
+		for i in np.arange(0, randrfi): image=embed_rfi(image, itensity=10)
+		for i in np.arange(0, randrfi): image=embed_rfi(image, frange=[0, 80], itensity=25)
+		for i in np.arange(0, 5): image=embed_rfi(image, frange=[250, 270], itensity=25)
+		for i in np.arange(0, 5): image=embed_rfi(image, frange=[img_sz-30, img_sz-5], itensity=25)	
+		randrfi = random.randint(0, 5)
+		for i in np.arange(0, randrfi): image=embed_rfi_block(image, itensity=10)
 
 		'''---------------------------------
 		Following characteristics produce a cluster 
 		of type IIIs together, as often occurs.
 		'''
-		cluster_type = random.randint(0,3)
-		nbursts = burst_cluster( cluster_type )['nbursts']
-		trange = burst_cluster( cluster_type )['trange']
-		head_range = burst_cluster( cluster_type )['head_range']
-		tail_range = burst_cluster( cluster_type )['tail_range']
-
+		cluster_type = random.randint(2,3)
+		nbursts = burst_cluster( cluster_type, img_sz )['nbursts']
+		trange = burst_cluster( cluster_type, img_sz )['trange']
+		head_range = burst_cluster( cluster_type, img_sz )['head_range']
+		tail_range = burst_cluster( cluster_type, img_sz )['tail_range']
 
 		for i in np.arange(0, nbursts): 
 			image, bbox, embed_fail = embed_typeIII(image, 
-				trange=trange, head_range=head_range, tail_range=tail_range)
+				trange=trange, head_range=head_range, tail_range=tail_range, intensity=random.uniform(1, 5))
 
 			if not embed_fail:
 				if i==0:
 					bboxes = [bbox]
 				else:
 					bboxes.append(bbox)	
-
-	
-		randrfi = random.randint(40, 100)
-		for i in np.arange(0, randrfi): image=embed_rfi(image, itensity=10)
-		for i in np.arange(0, randrfi): image=embed_rfi(image, frange=[0, 80], itensity=25)
-		for i in np.arange(0, 5): image=embed_rfi(image, frange=[250, 270], itensity=25)
-		for i in np.arange(0, 5): image=embed_rfi(image, frange=[390, 410], itensity=25)	
-		randrfi = random.randint(0, 5)
-		for i in np.arange(0, randrfi): image=embed_rfi_block(image, itensity=10)
 		
-
 		tophat_kernel = Tophat2DKernel(2)
 		image = convolve(image, tophat_kernel)
 		image = backsub(image)
 
-		#vmax = 15 for no backsub
-		#plt.imshow(image, vmin=1.0, vmax=4, cmap=plt.get_cmap('Spectral_r'))
-		#plt.show()
+		
 		#-------------------------------------------------------------------#
 		#
 		#    Write png that will be ingested by Tensorflow trained model
 		#    
 		root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/typeIII/'
-		png_file = root+'image_rfi_'+str(format(img_index, '04'))+'.png'
-		txt_file = root+'image_rfi_'+str(format(img_index, '04'))+'.txt' # Coordinates file for YOLO.
+		png_file = root+'image_'+str(format(img_index, '04'))+'.png'
+		txt_file = root+'image_'+str(format(img_index, '04'))+'.txt' # Coordinates file for YOLO.
 		print('Saving %s' %(png_file))
 		fig = plt.figure(1, frameon=False, figsize=(4,4))
 		ax = fig.add_axes([0, 0, 1, 1])
 		ax.axis('off')
-		ax.imshow(image, cmap=plt.get_cmap('grey'), vmin=image.min(), vmax=image.max())
+		ax.imshow(image, cmap=plt.get_cmap('gray'), vmin=image.min(), vmax=image.max())
 
 		#---------------------------------------------------------#
 		#
@@ -240,11 +236,11 @@ if __name__=="__main__":
 			xcen = bbox[0]+bbox[2]/2.0
 			ycen = bbox[1]+bbox[3]/2.0
 			dnet_coords = np.array([xcen, ycen, bbox[2], bbox[3]])/img_sz
-			txt_coords = "0 "+str(dnet_coords[0])+" "+str(dnet_coords[1])+" "+str(dnet_coords[2])+" "+str(dnet_coords[3])+"\n"
+			txt_coords = str(dnet_coords[0])+" "+str(dnet_coords[1])+" "+str(dnet_coords[2])+" "+str(dnet_coords[3])+"\n"
 			#print(txt_coords)
 			file.write(txt_coords)
-		plt.show()
-		pdb.set_trace()
+		#plt.show()
+		#pdb.set_trace()
 		file.close()
 		fig.savefig(png_file, transparent = True, bbox_inches = 'tight', pad_inches = 0, format='png')
 		#pdb.set_trace()
