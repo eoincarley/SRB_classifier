@@ -16,7 +16,7 @@ Once data is read into build_trainin_data it assembles all training and test dat
 
 While SVM and Random Forst show reasonable classifcation accuracy (74%), the PCA analysis that type0, typeII and typeIII radio burst images are indistinguishable when used in an NxN vector space (where NxN is image dimension). The classical machine learning classification algorithms that attempt to separate these classes in the vector space may never be able to achieve high accuracy. It's likely that only a convolutional neural network would be capable of accurate classification. 
 
-### For InceptionV3 and Darknet
+### For InceptionV3 and Darknet-YOLO
 
 The input for the training of ImagenetV3 and Darkent are the images (dynamic soectra themselves) themselves. The way I've written the scripts which call these neuural nets, the images should be in a local file called radio/bursts with type0, typeII and typeIII subdirectories.
 
