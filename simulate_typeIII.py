@@ -168,9 +168,9 @@ if __name__=="__main__":
 	# Product an image, add background Gaussian noise and antenna frequency response
 	img_sz = 512
 	image = np.zeros([img_sz, img_sz])
-	nsamples = 10000
+	nsamples = 5000
 
-	for img_index in np.arange(4000, 5000):
+	for img_index in np.arange(0, nsamples):
 		image[::] = 1.0
 
 		#image = image+np.random.normal(1, 0.5, image.shape)
@@ -190,7 +190,7 @@ if __name__=="__main__":
 		'''---------------------------------
 		Following characteristics produce a cluster 
 		of type IIIs together, as often occurs.
-		'''
+
 		cluster_type = random.randint(2,3)
 		nbursts = burst_cluster( cluster_type, img_sz )['nbursts']
 		trange = burst_cluster( cluster_type, img_sz )['trange']
@@ -206,19 +206,19 @@ if __name__=="__main__":
 					bboxes = [bbox]
 				else:
 					bboxes.append(bbox)	
-		
+		'''
 		tophat_kernel = Tophat2DKernel(2)
 		image = convolve(image, tophat_kernel)
 		image = backsub(image)
-
 		
+		bboxes = [ np.zeros(4) ]
 		#-------------------------------------------------------------------#
 		#
 		#    Write png that will be ingested by Tensorflow trained model
 		#    
-		root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/typeIII/'
-		png_file = root+'image_'+str(format(img_index, '04'))+'.png'
-		txt_file = root+'image_'+str(format(img_index, '04'))+'.txt' # Coordinates file for YOLO.
+		root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/rfi/'
+		png_file = root+'rfi_'+str(format(img_index, '04'))+'.png'
+		txt_file = root+'rfi_'+str(format(img_index, '04'))+'.txt' # Coordinates file for YOLO.
 		print('Saving %s' %(png_file))
 		fig = plt.figure(1, frameon=False, figsize=(4,4))
 		ax = fig.add_axes([0, 0, 1, 1])
@@ -236,7 +236,7 @@ if __name__=="__main__":
 			xcen = bbox[0]+bbox[2]/2.0
 			ycen = bbox[1]+bbox[3]/2.0
 			dnet_coords = np.array([xcen, ycen, bbox[2], bbox[3]])/img_sz
-			txt_coords = str(dnet_coords[0])+" "+str(dnet_coords[1])+" "+str(dnet_coords[2])+" "+str(dnet_coords[3])+"\n"
+			txt_coords = " "#str(dnet_coords[0])+" "+str(dnet_coords[1])+" "+str(dnet_coords[2])+" "+str(dnet_coords[3])+"\n"
 			#print(txt_coords)
 			file.write(txt_coords)
 		#plt.show()
