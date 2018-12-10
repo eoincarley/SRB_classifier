@@ -16,11 +16,11 @@ Once data is read into build_trainin_data it assembles all training and test dat
 
 While SVM and Random Forst show reasonable classifcation accuracy (74%), the PCA analysis that type0, typeII and typeIII radio burst images are indistinguishable when used in an NxN vector space (where NxN is image dimension). The classical machine learning classification algorithms that attempt to separate these classes in the vector space may never be able to achieve high accuracy. It's likely that only a convolutional neural network would be capable of accurate classification. 
 
-### For ImagenetV3 and Darknet
+### For InceptionV3 and Darknet
 
 The input for the training of ImagenetV3 and Darkent are the images (dynamic soectra themselves) themselves. The way I've written the scripts which call these neuural nets, the images should be in a local file called radio/bursts with type0, typeII and typeIII subdirectories.
 
-ImagenetV3 can be called using Python-TensorFlow and, once trained on RSTN and the simulations, is adapetd into scripts to classify data from ILOFAR. Due to the lack of training data, transfer learning had to be used here. These means only the ~6000 param fully connected final layer of Imagenet is trained. Good results of 95% on the validation set using this algorithm. the transfer learning can be done on a standard desktop.
+InceptionV3 can be called using Python-TensorFlow and, once trained on RSTN and the simulations, is adapetd into scripts to classify data from ILOFAR. Due to the lack of training data, transfer learning had to be used here. These means only the ~6000 param fully connected final layer of Imagenet is trained. Good results of 95% on the validation set using this algorithm. the transfer learning can be done on a standard desktop.
 
 Darknet-YOLO is an image segmentation algorithm that I'm currently attempting to use to recognise solar radio bursts. If trained well, it should be able to output bounding boxes around the radio bursts. It could potentially be a powerfull and fast radio burst identifier in dynamic spectra. The full yolov3 network is large, with ~110 layers. It can be trained on custom objects using pretrained weights. It requires fairly hefty computational resources i.e. you will need access to a nice GPU of ~4 Gb RAM. In my case I'm training on a Google Cloud VM Instance on which I have access to an NVIDIA Tesla K80 GPU. Using a batch size of 64 images, it'll get though about 10,000 images in ~30 minutes. That should be enough to achieve some accurate results.
 
