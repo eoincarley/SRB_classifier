@@ -7,4 +7,7 @@ CNN/examples/*
 CNN/training_imgs/*
 CNN/__pycache__/*
 simulations/*
-darknet/data/*
+YOLO/data/*
+YOLO/backup/*
+YOLO/darknet19_448.conv.23
+YOLO/darknet53.conv.74
