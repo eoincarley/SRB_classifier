@@ -2,7 +2,7 @@
 
 """
  File:
-    svm_burst_classifier.py
+    randforest_srb_classify.py
 
  Description:
     Read in images of solar radio bursts. Smooth, intensity scale, rebin then
@@ -36,7 +36,7 @@
  Notes:
 
  Examples:
- 	python3 svm_burst_classifier.py
+ 	python3 randforest_srb_classify.py
 
 
  Version hitsory:
@@ -46,53 +46,38 @@
 """
 
 
-import pdb
-import glob
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn import svm
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from PIL import Image
 
 
-def svm_baseline(training_data, test_data):
+def rf_baseline(training_data, test_data):
 
 	x_train = training_data[0]
 	y_train = training_data[1]
 	x_test = test_data[0]
 	y_test = test_data[1]
 
-	clf = svm.SVC(C=1, gamma=1, kernel='poly', cache_size=1000.0, class_weight='balanced')
-	clf.fit(x_train, y_train)
-	y_pred = clf.predict(x_test)  
+	sc = StandardScaler()  
+	x_train = sc.fit_transform(x_train)  
+	x_test = sc.transform(x_test)  
+
+	classifier = RandomForestClassifier(n_estimators=20, random_state=0)  
+	classifier.fit(x_train, y_train) 
+
+	y_pred = classifier.predict(x_test)  
 
 	print(confusion_matrix(y_test,y_pred))  
 	print(classification_report(y_test,y_pred))  
 	print(accuracy_score(y_test, y_pred))  
 
-	#predictions = [int(a) for a in clf.predict(test_data[0])]
-	#num_correct = sum(int(a == y) for a, y in zip(predictions, test_data[1]))
-	#print("%s of %s values correct." % (num_correct, len(test_data[1])))
-	#print("%s test set accuracy." % (num_correct/len(test_data[1])*100.))
 
-	'''
-	for a, y in zip(predictions, test_data[1]):
-		#if a==y:
-		print('Predicted burst type: %s' %(a))
-		img = Image.open(test_files[i])
-		data = np.asarray(img)
-		fig = plt.figure()
-		plt.imshow(data)
-		plt.title('Predicted burst type: %s' %(a))
-		plt.show()
-		plt.pause(1)
-		plt.close(fig)
-		i=i+1
-	'''
+
 if __name__=="__main__":
 
 	# The training and test data is constructed using build_train_data.py
 	data=np.load('../train_test_data.npy')
 	training_data = data[0]   
 	test_data = data[1]    
-	svm_baseline(training_data, test_data)
+	rf_baseline(training_data, test_data)
