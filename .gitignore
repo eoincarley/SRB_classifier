@@ -3,6 +3,7 @@ radio_bursts/*
 SVM/hyperparam_optimise.npy
 Inception/classify_20170902/*
 Inception/classify_20170910/*
+Inception/classify_20170821/*
 Inception/examples/*
 Inception/training_imgs/*
 Inception/__pycache__/*
