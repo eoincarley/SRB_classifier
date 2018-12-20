@@ -4,7 +4,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import pdb
-
+import os
+from copy import copy
 import scipy.ndimage.filters as smooth
 from astropy.convolution import convolve, Tophat2DKernel
 from numpy import random
@@ -82,15 +83,13 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 			if deltx0>1 and deltx1>1:
 				image[f, img_decayx0:img_decayx1] = image[f, img_decayx0:img_decayx1]+flux[flux.argmax():flux.argmax()+xlen]*intensity
 				image[f, img_risex0:img_risex1] = image[f, img_risex0:img_risex1]+flux[0:flux.argmax()]*intensity
-			else:
+			#else:
 				# Sometimes this if loop is untrue for the whole burst and no burst is embedded. 
 				# This else statement is to prevent return of bboxes for no bursts
-				no_embed+=1	
+				#no_embed+=1	
 		except ValueError:	
-			no_embed+=1		
+			embed_fail=True	
 
-	print(no_embed)
-	if no_embed>len(frange)*0.9: embed_fail=True
 	boxx0 = t0-10
 	boxy0 = f1
 	lenx = 40
@@ -138,7 +137,7 @@ def burst_cluster(i, img_sz):
 	    2:{'nbursts':1, 
 	    		   'trange':[5, img_sz-20], 
 	    		   'head_range':[0,200],
-	    		   'tail_range':[img_sz-50,img_sz-10]}
+	    		   'tail_range':[img_sz-280,img_sz-5]}
 	     }
 	return switcher.get(i, "Invalid burst cluster")
 
@@ -165,20 +164,22 @@ def backsub(data):
 #
 if __name__=="__main__":
 	
-	# Product an image, add background Gaussian noise and antenna frequency response
+	# Produce an image, add background Gaussian noise and antenna frequency response
 	img_sz = 512
-	image = np.zeros([img_sz, img_sz])
-	nsamples = 5000
+	orig_image = np.zeros([img_sz, img_sz])
+	nsamples = 20000
+	backg = 1.0 + np.sin(np.linspace(0, np.pi, img_sz))*4
+	backg = [backg, backg]
+	backg = np.transpose(np.repeat(backg, img_sz/2, axis=0))
+	tophat_kernel = Tophat2DKernel(2)
+	root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/typeIII/'
+	orig_image[::] = 1.0
+	orig_image = orig_image + backg
+
 
 	for img_index in np.arange(0, nsamples):
-		image[::] = 1.0
+		image = copy(orig_image)
 
-		#image = image+np.random.normal(1, 0.5, image.shape)
-		backg = 1.0 + np.sin(np.linspace(0, np.pi, img_sz))*4
-		backg = [backg, backg]
-		backg = np.transpose(np.repeat(backg, img_sz/2, axis=0))
-		image =  image + backg
-	
 		randrfi = random.randint(40, 100)
 		for i in np.arange(0, randrfi): image=embed_rfi(image, itensity=10)
 		for i in np.arange(0, randrfi): image=embed_rfi(image, frange=[0, 80], itensity=25)
@@ -190,15 +191,15 @@ if __name__=="__main__":
 		'''---------------------------------
 		Following characteristics produce a cluster 
 		of type IIIs together, as often occurs.
-
-		cluster_type = random.randint(2,3)
+		'''
+		cluster_type = 2 #random.randint(2,3)
 		nbursts = burst_cluster( cluster_type, img_sz )['nbursts']
 		trange = burst_cluster( cluster_type, img_sz )['trange']
 		head_range = burst_cluster( cluster_type, img_sz )['head_range']
 		tail_range = burst_cluster( cluster_type, img_sz )['tail_range']
-
+		
 		for i in np.arange(0, nbursts): 
-			image, bbox, embed_fail = embed_typeIII(image, 
+			new_image, bbox, embed_fail = embed_typeIII(image, 
 				trange=trange, head_range=head_range, tail_range=tail_range, intensity=random.uniform(1, 5))
 
 			if not embed_fail:
@@ -206,20 +207,16 @@ if __name__=="__main__":
 					bboxes = [bbox]
 				else:
 					bboxes.append(bbox)	
-		'''
-		tophat_kernel = Tophat2DKernel(2)
+		
+
 		image = convolve(image, tophat_kernel)
 		image = backsub(image)
 		
-		bboxes = [ np.zeros(4) ]
-		#-------------------------------------------------------------------#
+		#bboxes = [ np.zeros(4) ]
+		#----------------------------------------------#
 		#
-		#    Write png that will be ingested by Tensorflow trained model
+		#    Write png that will be ingested by CNN
 		#    
-		root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/rfi/'
-		png_file = root+'rfi_'+str(format(img_index, '04'))+'.png'
-		txt_file = root+'rfi_'+str(format(img_index, '04'))+'.txt' # Coordinates file for YOLO.
-		print('Saving %s' %(png_file))
 		fig = plt.figure(1, frameon=False, figsize=(4,4))
 		ax = fig.add_axes([0, 0, 1, 1])
 		ax.axis('off')
@@ -229,6 +226,8 @@ if __name__=="__main__":
 		#
 		#	Make the coords of feature for Darknet/YOLO training
 		#
+		png_file = root+'image_'+str(format(img_index, '05'))+'.png'
+		txt_file = root+'image_'+str(format(img_index, '05'))+'.txt' # Coordinates file for YOLO.
 		file = open(txt_file, "w")
 		for bbox in bboxes:
 			#rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], linewidth=1,edgecolor='r',facecolor='none')	
@@ -236,14 +235,14 @@ if __name__=="__main__":
 			xcen = bbox[0]+bbox[2]/2.0
 			ycen = bbox[1]+bbox[3]/2.0
 			dnet_coords = np.array([xcen, ycen, bbox[2], bbox[3]])/img_sz
-			txt_coords = " "#str(dnet_coords[0])+" "+str(dnet_coords[1])+" "+str(dnet_coords[2])+" "+str(dnet_coords[3])+"\n"
+			txt_coords = "0 "+str(dnet_coords[0])+" "+str(dnet_coords[1])+" "+str(dnet_coords[2])+" "+str(dnet_coords[3])+"\n"
 			#print(txt_coords)
 			file.write(txt_coords)
-		#plt.show()
-		#pdb.set_trace()
+
 		file.close()
+		print('Saving %s' %(png_file))
 		fig.savefig(png_file, transparent = True, bbox_inches = 'tight', pad_inches = 0, format='png')
-		#pdb.set_trace()
+		os.system("mogrify -format jpg -trim -resize 512x512 "+png_file)
 		plt.close(fig)
 
 
