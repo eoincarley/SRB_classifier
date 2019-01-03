@@ -136,7 +136,7 @@ deltglobal = timesut_total[-1] - timesut_total[0]
 trange = np.arange(0, deltglobal, timestep)
 
 
-yolo_burst_coords = yolo_results_parser('IE613_detections_1000.txt')
+yolo_burst_coords = yolo_results_parser('IE613_detections_0600_0010.txt')
 
 for img_index, tstep in enumerate(trange):
     #-------------------------------------#
@@ -159,14 +159,17 @@ for img_index, tstep in enumerate(trange):
     fig = plt.figure(2, figsize=(10,7))
     ax = fig.add_axes([0.1, 0.11, 0.9, 0.8])
     spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
+    spec.t_label='Time (UT)'
+    spec.f_label='Frequency (MHz)'
     spec.plot(vmin=data.mean() - data.std(), 
               vmax=data.mean() + data.std()*4.0, 
               cmap=plt.get_cmap('bone'))
 
     ntimes = len(delta_t)
+    npoints = 0
     for burst in burst_coords:
         burst = np.array(burst)
-        burst = np.clip(burst, 0, 512)/512
+        burst = np.clip(burst, 10, 500)/512
         x0 = burst[0]*ntimes
         y0 = nfreqs - burst[1]*nfreqs
         y0plot = nfreqs*2.0 - burst[1]*nfreqs*2.0    #the spec plotter seems to double the number of y-axis pixels.
@@ -175,8 +178,12 @@ for img_index, tstep in enumerate(trange):
         height = burst[3]*nfreqs*2.0
         y1 = (y0plot - height)
         x1 = x0 + width
-        #rect = patches.Rectangle((x0, y1), width, height, linewidth=0.5, edgecolor='lawngreen', facecolor='none')  
-        #ax.add_patch(rect)
+        if x1>ntimes: 
+            spill = x1-ntimes
+            width = width-spill - 5.0
+
+        rect = patches.Rectangle((x0, np.clip(y1, 3, 500)), width, height, linewidth=0.5, edgecolor='lawngreen', facecolor='none')  
+        ax.add_patch(rect)
 
         x0index = burst[0]*ntimes
         x1index = x0index+width
@@ -184,24 +191,25 @@ for img_index, tstep in enumerate(trange):
         y1index = nfreqs-burst[1]*nfreqs
         y0index = y1index - height/2
 
-        thresh = data.mean()+data.std()*1.0
+        thresh = data.mean()+data.std()*0.7
         burst_indices = np.where(data>thresh)
 
         xpoints = burst_indices[1]
         ypoints = burst_indices[0]
         xbox = xpoints[np.where( (xpoints>x0index) & (xpoints<x1index) & (ypoints<y1index) & (ypoints>y0index) )]
         ybox = ypoints[np.where( (xpoints>x0index) & (xpoints<x1index) & (ypoints<y1index) & (ypoints>y0index) )]
-        xbox = np.clip(xbox, 0, ntimes-1)
-        ybox = np.clip(ybox, 0, nfreqs-1)
+        xbox = np.clip(xbox, 0, ntimes-3)
+        ybox = np.clip(ybox, 0, nfreqs-2)
+        npoints = npoints + len(xpoints)
         #xpoints = xpoints[np.where(xpoints>x0index and xpoints<x1index)]
         #ypoints = ypoints[np.where(xpoints>x0index and xpoints<x1index)]
 
         plt.scatter(x=xbox, y=ybox*2.0, c='r', s=10, alpha=0.1)
 
 
-    spec.t_label='Time (UT)'
-    spec.f_label='Frequency (MHz)'
     plt.text(100, 375, 'IE613 I-LOFAR YOLOv3 type III detections')
+    out_png = output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png'
+    print("Saving %s" %(out_png))
     fig.savefig(output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png')
     #plt.show()
     #pdb.set_trace()
@@ -212,4 +220,4 @@ for img_index, tstep in enumerate(trange):
     
 
     
-#ffmpeg -y -r 25 -i image_%04d.png -vb 50M classified.mpg
+#ffmpeg -y -r 25 -i IE613_%04d_detections.png -vb 50M IE613_YOLO.mpg
