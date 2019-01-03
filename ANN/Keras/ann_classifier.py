@@ -24,8 +24,8 @@ from keras.optimizers import SGD
 	A note on Nesterov accelerated gradient descent: The momentum parameter updates the weights based on 
 	the accumulated gradient of previous steps (instead of just the local gradient, as in the normal SGD).
 	The Nesterov approach updates the weights using the momentum of accumulated weights, but also taking into
-	account the local gradient. The approach is update weight using accumulated gradient -> correct for local
-	gradient. This is a good way of 'over-shooting' a minimum due to too much momentum in the approach to that
+	account the local gradient. The approach is; update weight using accumulated gradient -> correct for local
+	gradient. This is a good way of preventing 'over-shooting' a minimum due to too much momentum in the approach to that
 	minimum.
 '''
 
