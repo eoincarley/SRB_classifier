@@ -5,18 +5,7 @@
     randforest_srb_classify.py
 
  Description:
-    Read in images of solar radio bursts. Smooth, intensity scale, rebin then
-    reshape into a 1-dimensional vector. 
-
-    The test data is necessarily given the same format.
-
-    Results in training inputs and expected outpurs for use in machine learning 
-    algorithms. Used for input in SVM, Random Forest, FFNN.
-
-    Data may have to be in slightly different formats depend on ML Python
-    package e.g., Scikit, PyTorch or Keras. Format produced by this code is
-    nice for SVM from Scikit learn, but a bit of unpacking is required
-    for Keras input.
+    Train a random forest classifier to classify type II and III radio burst images. 
 
  Disclaimer:
 

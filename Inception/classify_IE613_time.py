@@ -1,9 +1,36 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
 """
+ File:
+    classify_IE613_time.py
 
-Convolutional neural network radio burst classifier.
+ Description:
+    Classify images of data from I-LOFAR (IE613) to determine what radio burst is in the image.
+    Classifier is a trained InceptionV3 model. Tensorflow functions brought over from the retraining
+    packages.
 
+ Disclaimer:
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT HOLDER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+    USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+    OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+ Notes:
+
+ Examples:
+
+ Version hitsory:
+
+    Created 2018-May-05
 
 """
 from __future__ import absolute_import
@@ -12,13 +39,13 @@ from __future__ import print_function
 import argparse
 import tensorflow as tf
 
+import os
+import time
+import pdb
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy
-import time
-import os
-import pdb
 import seaborn as sns
 import label_image
 import spectro_process

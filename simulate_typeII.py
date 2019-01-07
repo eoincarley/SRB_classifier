@@ -1,13 +1,50 @@
+#!/usr/bin/env python3
+
+"""
+ File:
+    simulate_typeII.py
+
+ Description:
+   	Simulates a dynamic spectrum of a type II solar radio burst in a dynamic spectrum.
+   	Uses random number generaters to vary the drift rate, start-end frequency and times,
+   	intensity, bandwidth and a number of other paramaters to ensure a large variety of
+   	shapes and sizes.
+
+ Disclaimer:
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT HOLDER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+    USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+    OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+ Notes:
+
+ Examples:
+
+ Version hitsory:
+
+	Created 2018-May-05
+
+
+"""
+import pdb
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pdb
+
 import scipy.ndimage.filters as smooth
 from scipy.stats import norm
 from astropy.convolution import convolve, Tophat2DKernel
 from simulate_typeIII import embed_typeIII, burst_cluster
 poly=np.polynomial.polynomial.polyval
-
 
 def embed_typeII(image):
 
@@ -17,7 +54,7 @@ def embed_typeII(image):
 	f0 = random.randint(20, img_sz-20)
 	times = np.linspace(t0, t1, 300, dtype=int)
 
-	drif_parm0 = random.uniform(1.2, 1.8)
+	drif_parm0 = random.uniform(1.2, 1.8)  # Controls the drift rate
 	drif_parm1 = random.uniform(1.0, 1.8)
 	drift_range = drif_parm0/np.linspace(1, 2, len(times))**drif_parm1
 
@@ -26,7 +63,7 @@ def embed_typeII(image):
 
 	x = np.linspace(0, 2*np.pi, len(times))
 	
-	env_phase1 = random.randint(1,4)
+	env_phase1 = random.randint(1,4) # These envolope functions control the intensity variation along the backbone
 	env_phase2 = random.randint(1,4)
 	env_phase3 = random.randint(1,4)
 	env_phase4 = random.randint(1,4)
@@ -57,7 +94,7 @@ def embed_typeII(image):
 	scales1 = bw_env*env1*5
 	scales2 = bw_env*env2*5
 	
-	width_left = random.uniform(0.8, 2.0)
+	width_left = random.uniform(0.8, 2.0)  # The bandwidth of the type II F and H lanes
 	width_right = random.uniform(0.8, 1.0)
 	typeIII_scales = np.linspace(width_left, width_right, len(times))		
 	
@@ -114,7 +151,6 @@ def embed_rfi_block(image, itensity=25):
 	return image
 
 
-
 def backsub(data):
     # Devide each spectrum by the spectrum with the minimum standard deviation.
     #data = np.log10(data)
@@ -140,6 +176,7 @@ if __name__=="__main__":
 
 	nsamples = 3000
 	img_sz=600
+
 	for img_index in np.arange(0, nsamples):
 		image = np.zeros([img_sz, img_sz])
 		image[::] = 1.0
