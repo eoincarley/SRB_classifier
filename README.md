@@ -19,7 +19,7 @@ For these algorithms the training and test data are assembled into the appropria
 
 Once data is read into build_trainin_data it assembles all training and test data into a numpy array and saves it to train_test_data.npy. This .npy file is used by the SVM, RF, PCA and Keras scripts.
 
-While SVM and Random Forst show reasonable classifcation accuracy (74%), the PCA analysis shows that type0, typeII and typeIII radio burst images are indistinguishable when used in an NxN vector space (where NxN is image dimension). The classical machine learning classification algorithms that attempt to separate these classes in the vector space may never be able to achieve high accuracy. It's likely that only a convolutional neural network would be capable of accurate classification. 
+SVM and Random Forst show reasonable classifcation accuracy (74%), while a 1-hidden layer neural network built using Keras shows similar results. The PCA analysis that some type0, typeII and typeIII radio burst images are indistinguishable in an NxN vector space (where NxN is image dimension). Hence, the classical machine learning classification algorithms, as well as basic neural networks, may never be able to achieve high accuracy i.e., the radio bursts are not completely separable in the NxN vector space. t-Distributed stochastic neighbout embedding would also be a nice way to show this. It's likely that only a convolutional neural network would be capable of accurate classification. 
 
 Similar classification accuracy was achieved with a 1-hidden layer neural network built using Keras. Generally, this
 type of NN suffers from the same problem as the classical algorithms i.e., the radiobursts are not entirely separable in
