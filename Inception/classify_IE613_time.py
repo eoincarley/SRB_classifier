@@ -48,7 +48,7 @@ import matplotlib.pyplot as plt
 import scipy
 import seaborn as sns
 import label_image
-import spectro_process
+import spectro_prep
 from matplotlib import dates
 from radiospectra import spectrogram
 from datetime import datetime
@@ -92,7 +92,7 @@ def write_png_for_classifier(data, filename):
     #data_smooth = convolve(data, tophat_kernel)
     data = data[::-1, ::]
     #data = spectro_process.rfi_removal(data, boxsz=1)
-    data = spectro_process.backsub(data)
+    data = spectro_prrep.backsub_min(data)
     scl0 = np.median(data) #data.mean() + data.std()     
     scl1 = np.max(data) #data.mean() + data.std()*4.0
     # Note these intensity scaling factors are important. If the background is not clipped away, 
@@ -144,7 +144,7 @@ timesut_total = np.array(result[0]['time'])     # In UTC
 # Sort frequencies
 spectro = spectro[::-1, ::]                     # Reverse spectrogram. For plotting high -> low frequency
 freqs = freqs[::-1]                             # For plotting high -> low frequency
-#spectro = spectro_process.backsub(spectro)
+#spectro = spectro_prep.backsub_min(spectro)
 indices = np.where( (freqs>=20.0) & (freqs<=100.0) )              # Taking only the LBA frequencies
 freqs = freqs[indices[0]]
 spectro = spectro[indices[0], ::]
@@ -209,8 +209,8 @@ for img_index, tstep in enumerate(trange):
     #   
     fig = plt.figure(2, figsize=(10,7))
     ax0 = fig.add_axes([0.1, 0.11, 0.9, 0.6])
-    data = spectro_process.backsub(data)
-    #data = spectro_process.rfi_removal(data, boxsz=1)
+    data = spectro_preps.backsub_min(data)
+    #data = spectro_prep.rfi_removal(data, boxsz=1)
     spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
     spec.plot(vmin=np.median(data), 
               vmax=data.max(), 

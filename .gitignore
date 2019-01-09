@@ -7,6 +7,8 @@ Inception/classify_20170821/*
 Inception/examples/*
 Inception/training_imgs/*
 Inception/__pycache__/*
+__pycache__/*
+IE613_data/*
 simulations/*
 Darknet/data/*
 Darknet/backup/*
