@@ -127,11 +127,10 @@ for img_index, tstep in enumerate(trange):
 	data = spectro[::, time_index[0]] #mode 3 reading
 	data = backsub(data)
 	delta_t = times_ut - times_ut[0]
+	ntimes = len(delta_t)
 	times_dt = [datetime.fromtimestamp(t) for t in times_ut]
 	time0_str = times_dt[0].strftime('%Y%m%d_%H%M%S')
 	img_key = 'image_'+time0_str
-	yolo_burst_coords = yolo_allburst_coords[img_key]
-
 
 	fig = plt.figure(2, figsize=(10,7))
 	ax = fig.add_axes([0.1, 0.11, 0.9, 0.8])
@@ -144,8 +143,8 @@ for img_index, tstep in enumerate(trange):
 	          vmax=scl2, 
 	          cmap=plt.get_cmap('bone'))
 
-	ntimes = len(delta_t)
-	npoints = 0
+	yolo_burst_coords = yolo_allburst_coords[img_key]
+
 	for burstcoords in yolo_burst_coords:
 		burstcoords = np.array(burstcoords)
 		burstcoords = np.clip(burstcoords, 4, 508)/input_width
@@ -162,8 +161,10 @@ for img_index, tstep in enumerate(trange):
 		#
 		#	Plot red points inside boxes
 		#	
-		y1 = int(y0 + height/2.0)
-		y0index = nfreqs - y1 #nfreqs - y0+height/2
+		y0 = y0//2
+		height = int(height/2)
+		y1 = y0 + height
+		y0index = nfreqs - y1 
 		y1index = nfreqs - y0
 
 		data_section = data[y0index:y1index, x0:x1]
@@ -176,24 +177,17 @@ for img_index, tstep in enumerate(trange):
 					  (ypoints<y1index) & \
 					  (ypoints>y0index)
 
-		xbox = xpoints[np.where( box_indices )]
-		ybox = ypoints[np.where( box_indices )]
+		xbox, ybox = xpoints[np.where( box_indices )], ypoints[np.where( box_indices )]
 		xbox, ybox = np.clip(xbox, 0, ntimes-2), np.clip(ybox, 0, nfreqs-2)
-		npoints = npoints + len(xpoints)
 
 		plt.scatter(x=xbox, y=ybox*2.0, c='r', s=10, alpha=0.1)
-	
 
 	plt.text(200, 365, 'IE613 I-LOFAR YOLOv3 type III detections')
 	out_png = output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png'
 	print("Saving %s" %(out_png))
 	fig.savefig(output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png')
 	#plt.show()
-	#pdb.set_trace()
 	plt.close(fig)
-	#if img_index==19: pdb.set_trace()
-
-
 
     
 #ffmpeg -y -r 20 -i IE613_%04d_detections.png -vb 50M IE613_YOLO_600_0001.mpg
