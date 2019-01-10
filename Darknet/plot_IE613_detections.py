@@ -23,6 +23,11 @@ from skimage.transform import resize
 from matplotlib import gridspec
 from spectro_prep import rfi_removal, backsub 
 
+
+#-------------------------------------#
+#
+#      		 Functions
+#
 def yolo_results_parser(txt):
     file = open(txt, 'r')
     yolo_results = np.array(list(file))
@@ -46,6 +51,32 @@ def yolo_results_parser(txt):
     return yolo_dict    
 
 
+def get_box_coords(coords, nx, ny):
+
+	# Awkardly, the x0, y0 points for the patches.rectangle procedure is a little 
+	# different to how the coords are defined by yolo. This converts from one to the other.
+
+	x0, y0 = int(coords[0]*nx), int(coords[1]*ny)
+	y0plot = coords[1]*ny    #the spec plotter seems to double the number of y-axis pixels.
+
+	width, height = coords[2]*nx, coords[3]*ny
+	y1 = ny - (y0plot + height)  # Note that pacthes.Rectangle measure the y-coord from the bottom.
+	x1 = int(x0 + width)
+
+	spill=x1-nx-2.0 if x1>=(nx-2) else 0.0
+	width = width-spill
+
+	boxx0 = np.clip(x0, 0, nx)
+	boxy0 = np.clip(y1, 0, ny)
+
+	return x0, y0, x1, y1, boxx0, boxy0, width, height
+
+
+
+#-------------------------------------#
+#
+#      		 Main procedure
+#
 IE613_file = '20170910_070804_bst_00X.npy'
 event_date = IE613_file.split('_')[0]
 file_path = '../Inception/classify_'+event_date+'/'
@@ -71,6 +102,7 @@ indices = np.where( (freqs>=20.0) & (freqs<=100.0) )              # Taking only 
 freqs = freqs[indices[0]]
 spectro = spectro[indices[0], ::]
 nfreqs = len(freqs)
+nspecfreqs = nfreqs*2 # the spectro plotter doubles the amount of y points.
 
 # Sort time
 block_sz = 10.0 # minutes
@@ -80,7 +112,7 @@ time1global = time_start  + 60.0*block_sz
 deltglobal = timesut_total[-1] - timesut_total[0]
 trange = np.arange(0, deltglobal, timestep)
 
-yolo_burst_coords = yolo_results_parser('IE613_detections_600_0010_20190110.txt')
+yolo_allburst_coords = yolo_results_parser('IE613_detections_600_0010_20190110.txt')
 
 for img_index, tstep in enumerate(trange):
 	#-------------------------------------#
@@ -98,7 +130,7 @@ for img_index, tstep in enumerate(trange):
 	times_dt = [datetime.fromtimestamp(t) for t in times_ut]
 	time0_str = times_dt[0].strftime('%Y%m%d_%H%M%S')
 	img_key = 'image_'+time0_str
-	burst_coords = yolo_burst_coords[img_key]
+	yolo_burst_coords = yolo_allburst_coords[img_key]
 
 
 	fig = plt.figure(2, figsize=(10,7))
@@ -114,48 +146,39 @@ for img_index, tstep in enumerate(trange):
 
 	ntimes = len(delta_t)
 	npoints = 0
-	for burst in burst_coords:
-		burst = np.array(burst)
-		burst = np.clip(burst, 4, 508)/512
+	for burstcoords in yolo_burst_coords:
+		burstcoords = np.array(burstcoords)
+		burstcoords = np.clip(burstcoords, 4, 508)/input_width
 
-		x0 = int(burst[0]*ntimes)
-		y0 = int(burst[1]*nfreqs)
-		y0plot = burst[1]*nfreqs*2.0    #the spec plotter seems to double the number of y-axis pixels.
+		x0, y0, x1, y1, boxx0, boxy0, width, height = get_box_coords(burstcoords, ntimes, nspecfreqs)
 
-		width = burst[2]*ntimes
-		height = burst[3]*nfreqs*2.0
-		y1 = nfreqs*2 - (y0plot + height)  # Note that pacthes.Rectangle measure the y-coord from the bottom.
-
-		x1 = int(x0 + width)
-
-		if x1>=(ntimes-2): 
-			spill = x1-ntimes
-			width = width-spill-2.0
-
-		y1 = np.clip(y1, 0, nfreqs*2)
-		x0 = np.clip(x0, 0, ntimes)
-
-		rect = patches.Rectangle( (x0, y1), width, height, linewidth=0.5, edgecolor='lawngreen', facecolor='none')  
-		#ax.add_patch(rect)
+		rect = patches.Rectangle( (boxx0, boxy0), width, height, 
+				linewidth=0.5, 	
+				edgecolor='lawngreen', 
+				facecolor='none')  
+		ax.add_patch(rect)
 
 		#----------------------------------#
 		#
 		#	Plot red points inside boxes
-		#		
+		#	
 		y1 = int(y0 + height/2.0)
-		y1index = nfreqs - y0
 		y0index = nfreqs - y1 #nfreqs - y0+height/2
+		y1index = nfreqs - y0
 
 		data_section = data[y0index:y1index, x0:x1]
-		thresh = np.median(data_section)+data_section.std()*0.5
+		thresh = np.median(data_section)+data_section.std()*0.7
 		burst_indices = np.where(data>thresh)
 
-		xpoints = burst_indices[1]
-		ypoints = burst_indices[0]
-		xbox = xpoints[np.where( (xpoints>x0) & (xpoints<x1) & (ypoints<y1index) & (ypoints>y0index) )]
-		ybox = ypoints[np.where( (xpoints>x0) & (xpoints<x1) & (ypoints<y1index) & (ypoints>y0index) )]
-		xbox = np.clip(xbox, 0, ntimes-2)
-		ybox = np.clip(ybox, 0, nfreqs-2)
+		xpoints, ypoints = burst_indices[1], burst_indices[0]
+		box_indices = (xpoints>x0) & \
+					  (xpoints<x1) & \
+					  (ypoints<y1index) & \
+					  (ypoints>y0index)
+
+		xbox = xpoints[np.where( box_indices )]
+		ybox = ypoints[np.where( box_indices )]
+		xbox, ybox = np.clip(xbox, 0, ntimes-2), np.clip(ybox, 0, nfreqs-2)
 		npoints = npoints + len(xpoints)
 
 		plt.scatter(x=xbox, y=ybox*2.0, c='r', s=10, alpha=0.1)
