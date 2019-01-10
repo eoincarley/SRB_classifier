@@ -52,7 +52,7 @@ file_path = '../Inception/classify_'+event_date+'/'
 output_path = 'data/IE613_predictions/'
 input_height = 512
 input_width = 512
-timestep = int(10.0)   # Seconds 
+timestep = int(30.0)   # Seconds 
 
 #-------------------------------------#
 #
@@ -73,92 +73,104 @@ spectro = spectro[indices[0], ::]
 nfreqs = len(freqs)
 
 # Sort time
-block_sz = 5.0 # minutes
+block_sz = 10.0 # minutes
 time_start = timesut_total[0] #datetime(2017, 9, 2, 10, 46, 0).timestamp() 
 time0global = time_start 
 time1global = time_start  + 60.0*block_sz      
 deltglobal = timesut_total[-1] - timesut_total[0]
 trange = np.arange(0, deltglobal, timestep)
 
-yolo_burst_coords = yolo_results_parser('IE613_detections_600_0005_20190108.txt')
+yolo_burst_coords = yolo_results_parser('IE613_detections_600_0010_20190110.txt')
 
 for img_index, tstep in enumerate(trange):
-    #-------------------------------------#
-    #     Select block of time. 
-    #     Shifts by tstep every iteration of the loop.
-    #
-    time_start = time0global + tstep
-    time_stop = time1global + tstep
-    time_index = np.where( (timesut_total >= time_start) 
-                            & (timesut_total <= time_stop))
-    times_ut = timesut_total[time_index[0]]
-    data = spectro[::, time_index[0]] #mode 3 reading
-    data = backsub(data)
-    delta_t = times_ut - times_ut[0]
-    times_dt = [datetime.fromtimestamp(t) for t in times_ut]
-    time0_str = times_dt[0].strftime('%Y%m%d_%H%M%S')
-    img_key = 'image_'+time0_str
-    burst_coords = yolo_burst_coords[img_key]
+	#-------------------------------------#
+	#     Select block of time. 
+	#     Shifts by tstep every iteration of the loop.
+	#
+	time_start = time0global + tstep
+	time_stop = time1global + tstep
+	time_index = np.where( (timesut_total >= time_start) 
+	                        & (timesut_total <= time_stop))
+	times_ut = timesut_total[time_index[0]]
+	data = spectro[::, time_index[0]] #mode 3 reading
+	data = backsub(data)
+	delta_t = times_ut - times_ut[0]
+	times_dt = [datetime.fromtimestamp(t) for t in times_ut]
+	time0_str = times_dt[0].strftime('%Y%m%d_%H%M%S')
+	img_key = 'image_'+time0_str
+	burst_coords = yolo_burst_coords[img_key]
 
 
-    fig = plt.figure(2, figsize=(10,7))
-    ax = fig.add_axes([0.1, 0.11, 0.9, 0.8])
-    spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
-    spec.t_label='Time (UT)'
-    spec.f_label='Frequency (MHz)'
-    spec.plot(vmin=data.mean() - data.std(), 
-              vmax=data.mean() + data.std()*4.0, 
-              cmap=plt.get_cmap('bone'))
+	fig = plt.figure(2, figsize=(10,7))
+	ax = fig.add_axes([0.1, 0.11, 0.9, 0.8])
+	spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
+	spec.t_label='Time (UT)'
+	spec.f_label='Frequency (MHz)'
+	scl1 = 0.995 #data.mean() #- data.std()
+	scl2 = 1.025 #data.mean() + data.std()*4.0
+	spec.plot(vmin=scl1, 
+	          vmax=scl2, 
+	          cmap=plt.get_cmap('bone'))
 
-    ntimes = len(delta_t)
-    npoints = 0
-    for burst in burst_coords:
-        burst = np.array(burst)
-        burst = np.clip(burst, 5, 505)/512
-        x0 = burst[0]*ntimes
-        y0 = nfreqs - burst[1]*nfreqs
-        y0plot = nfreqs*2.0 - burst[1]*nfreqs*2.0    #the spec plotter seems to double the number of y-axis pixels.
+	ntimes = len(delta_t)
+	npoints = 0
+	for burst in burst_coords:
+		burst = np.array(burst)
+		burst = np.clip(burst, 4, 508)/512
 
-        width = burst[2]*ntimes
-        height = burst[3]*nfreqs*2.0
-        y1 = (y0plot - height)
-        x1 = x0 + width
-        if x1>ntimes: 
-            spill = x1-ntimes
-            width = width-spill - 5.0
+		x0 = int(burst[0]*ntimes)
+		y0 = int(burst[1]*nfreqs)
+		y0plot = burst[1]*nfreqs*2.0    #the spec plotter seems to double the number of y-axis pixels.
 
-        rect = patches.Rectangle((x0, np.clip(y1, 3, 500)), width, height, linewidth=0.5, edgecolor='lawngreen', facecolor='none')  
-        ax.add_patch(rect)
+		width = burst[2]*ntimes
+		height = burst[3]*nfreqs*2.0
+		y1 = nfreqs*2 - (y0plot + height)  # Note that pacthes.Rectangle measure the y-coord from the bottom.
 
-        x0index = burst[0]*ntimes
-        x1index = x0index+width
+		x1 = int(x0 + width)
 
-        y1index = nfreqs-burst[1]*nfreqs
-        y0index = y1index - height/2
+		if x1>=(ntimes-2): 
+			spill = x1-ntimes
+			width = width-spill-2.0
 
-        thresh = data.mean()+data.std()*0.7
-        burst_indices = np.where(data>thresh)
+		y1 = np.clip(y1, 0, nfreqs*2)
+		x0 = np.clip(x0, 0, ntimes)
 
-        xpoints = burst_indices[1]
-        ypoints = burst_indices[0]
-        xbox = xpoints[np.where( (xpoints>x0index) & (xpoints<x1index) & (ypoints<y1index) & (ypoints>y0index) )]
-        ybox = ypoints[np.where( (xpoints>x0index) & (xpoints<x1index) & (ypoints<y1index) & (ypoints>y0index) )]
-        xbox = np.clip(xbox, 0, ntimes-3)
-        ybox = np.clip(ybox, 0, nfreqs-2)
-        npoints = npoints + len(xpoints)
-        #xpoints = xpoints[np.where(xpoints>x0index and xpoints<x1index)]
-        #ypoints = ypoints[np.where(xpoints>x0index and xpoints<x1index)]
+		rect = patches.Rectangle( (x0, y1), width, height, linewidth=0.5, edgecolor='lawngreen', facecolor='none')  
+		#ax.add_patch(rect)
 
-        plt.scatter(x=xbox, y=ybox*2.0, c='r', s=10, alpha=0.1)
+		#----------------------------------#
+		#
+		#	Plot red points inside boxes
+		#		
+		y1 = int(y0 + height/2.0)
+		y1index = nfreqs - y0
+		y0index = nfreqs - y1 #nfreqs - y0+height/2
+
+		data_section = data[y0index:y1index, x0:x1]
+		thresh = np.median(data_section)+data_section.std()*0.5
+		burst_indices = np.where(data>thresh)
+
+		xpoints = burst_indices[1]
+		ypoints = burst_indices[0]
+		xbox = xpoints[np.where( (xpoints>x0) & (xpoints<x1) & (ypoints<y1index) & (ypoints>y0index) )]
+		ybox = ypoints[np.where( (xpoints>x0) & (xpoints<x1) & (ypoints<y1index) & (ypoints>y0index) )]
+		xbox = np.clip(xbox, 0, ntimes-2)
+		ybox = np.clip(ybox, 0, nfreqs-2)
+		npoints = npoints + len(xpoints)
+
+		plt.scatter(x=xbox, y=ybox*2.0, c='r', s=10, alpha=0.1)
+	
+
+	plt.text(200, 365, 'IE613 I-LOFAR YOLOv3 type III detections')
+	out_png = output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png'
+	print("Saving %s" %(out_png))
+	fig.savefig(output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png')
+	#plt.show()
+	#pdb.set_trace()
+	plt.close(fig)
+	#if img_index==19: pdb.set_trace()
 
 
-    plt.text(100, 375, 'IE613 I-LOFAR YOLOv3 type III detections')
-    out_png = output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png'
-    print("Saving %s" %(out_png))
-    fig.savefig(output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png')
-    #plt.show()
-    #pdb.set_trace()
-    plt.close(fig)
+
     
-    
-#ffmpeg -y -r 25 -i IE613_%04d_detections.png -vb 50M IE613_YOLO.mpg
+#ffmpeg -y -r 20 -i IE613_%04d_detections.png -vb 50M IE613_YOLO_600_0001.mpg

@@ -34,8 +34,8 @@ def write_png_for_classifier(data, filename):
     data = data[::-1, ::]
     #data = rfi_removal(data, boxsz=1)
     data = backsub(data)
-    scl0 = data.mean() #+ data.std()     
-    scl1 = data.mean() + data.std()*4.0
+    scl0 = 0.995 #data.mean() #+ data.std()     
+    scl1 = 1.025 #data.mean() + data.std()*4.0
     # Note these intensity scaling factors are important. If the background is not clipped away, 
     # the classifier is not successful. Only the most intense bursts in the image are classified. 
     # This is because the training data had to be clipped quite harshly to train the CNN.
@@ -62,7 +62,7 @@ file_path = '../Inception/classify_'+event_date+'/'
 output_path = 'data/IE613_test/'
 input_height = 512
 input_width = 512
-timestep = int(10.0)   # Seconds 
+timestep = int(30.0)   # Seconds 
 
 #-------------------------------------#
 #
@@ -82,7 +82,7 @@ freqs = freqs[indices[0]]
 spectro = spectro[indices[0], ::]
 
 # Sort time
-block_sz = 5.0 # minutes
+block_sz = 10.0 # minutes
 time_start = timesut_total[0] #datetime(2017, 9, 2, 10, 46, 0).timestamp() 
 time0global = time_start 
 time1global = time_start  + 60.0*block_sz      

@@ -67,7 +67,7 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 	xdrift = t0 + base_driftrate/drift_range 		# In pixel units. Responsible for how 'curved' the head is.
 	#xdrift = np.linspace(t0, t0-driftrate, len(frange))
 
-	headsize = random.randint(1, 10) 	# Controls how much the head of the type III decays away -> how fat the head is.
+	headsize = random.randint(0.1, 10) 	# Controls how much the head of the type III decays away -> how fat the head is.
 	tailsize = random.uniform(0.1, 5)     
 	turnover = random.randint(3, 100)     # Controls how long the head is in time 						
 	tspread0 = np.linspace(0, headsize, turnover)  					# The first ten pixels of the head get fatter
