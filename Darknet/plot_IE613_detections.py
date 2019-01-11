@@ -52,15 +52,15 @@ def get_box_coords(coords, nx, ny):
 	# different to how the coords are defined by yolo. This converts from one to the other.
 
 	x0, y0 = int(coords[0]*nx), int(coords[1]*ny)
-	y0plot = coords[1]*ny    #the spec plotter seems to double the number of y-axis pixels.
 
 	width, height = coords[2]*nx, coords[3]*ny
-	y1 = ny - (y0plot + height)  # Note that pacthes.Rectangle measure the y-coord from the bottom.
+	y1 = ny - (y0 + height)  # Note that pacthes.Rectangle measure the y-coord from the bottom.
 	x1 = int(x0 + width)
 
-	spill=x1-nx-2.0 if x1>=(nx-2) else 0.0
+	spill=x1-nx-4.0 if x1>=(nx-2) else 0.0
 	width = width-spill
 
+	if y1<0: height=height+y1
 	boxx0 = np.clip(x0, 0, nx)
 	boxy0 = np.clip(y1, 0, ny)
 
@@ -142,7 +142,7 @@ if __name__ == '__main__':
 		yolo_burst_coords = yolo_allburst_coords[img_key]
 
 		for burstcoords in yolo_burst_coords:
-			burstcoords = np.clip(np.array(burstcoords)s, 4, 508)/img_sz # Clip because YOLO sometimes gives negative coords
+			burstcoords = np.clip(np.array(burstcoords), 4, 508)/img_sz # Clip because YOLO sometimes gives negative coords
 
 			x0, y0, x1, y1, boxx0, boxy0, width, height = get_box_coords(burstcoords, ntimes, nspecfreqs)
 
@@ -177,12 +177,13 @@ if __name__ == '__main__':
 
 			plt.scatter(x=xbox, y=ybox*2.0, c='r', s=10, alpha=0.1)
 
+
 		plt.text(200, 365, 'IE613 I-LOFAR YOLOv3 type III detections')
 		out_png = output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png'
 		print("Saving %s" %(out_png))
 		fig.savefig(output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png')
-		#plt.show()
 		plt.close(fig)
+			
 
 	    
 	#ffmpeg -y -r 20 -i IE613_%04d_detections.png -vb 50M IE613_YOLO_600_0001.mpg
