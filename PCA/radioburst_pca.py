@@ -26,6 +26,7 @@
  Notes:
 
  Examples:
+ 	python3 radioburst_pca.py
 
  Version hitsory:
 
@@ -36,6 +37,7 @@
 import numpy as np
 import matplotlib.pyplot as plt 
 import seaborn as sns
+from sklearn.preprocessing import StandardScaler
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 
@@ -50,6 +52,8 @@ if __name__=="__main__":
 	targets = training_data[1]
 
 
+	sc = StandardScaler()  
+	training_imgs = sc.fit_transform(training_imgs)  
 	#-------------------------------------------------------;
 	#
 	#	PCA can separate somewhat type IIs and type IIs along

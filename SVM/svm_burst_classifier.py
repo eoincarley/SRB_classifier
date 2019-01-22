@@ -48,51 +48,52 @@
 
 import pdb
 import glob
+
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+
 from sklearn import svm
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
-from PIL import Image
 
-
-def svm_baseline(training_data, test_data):
+def svm_train_eval(training_data, test_data):
 
 	x_train = training_data[0]
 	y_train = training_data[1]
 	x_test = test_data[0]
 	y_test = test_data[1]
 
+	sc = StandardScaler()  
+	x_train = sc.fit_transform(x_train)  
+	x_test = sc.transform(x_test)  
+
 	clf = svm.SVC(C=1, gamma=1, kernel='poly', cache_size=1000.0, class_weight='balanced')
 	clf.fit(x_train, y_train)
 	y_pred = clf.predict(x_test)  
 
-	print(confusion_matrix(y_test,y_pred))  
-	print(classification_report(y_test,y_pred))  
-	print(accuracy_score(y_test, y_pred))  
+	#---------------------------------------------------#
+	#		Compare predicted to test y values 
+	#		to evaluate various performance metrics.
+	test_acc = accuracy_score(y_test, y_pred)
+	print('Test set accurcay: %s' %(test_acc))  
+	print(classification_report(y_test, y_pred))  
+	cmat = confusion_matrix(y_test, y_pred)  
 
-	#predictions = [int(a) for a in clf.predict(test_data[0])]
-	#num_correct = sum(int(a == y) for a, y in zip(predictions, test_data[1]))
-	#print("%s of %s values correct." % (num_correct, len(test_data[1])))
-	#print("%s test set accuracy." % (num_correct/len(test_data[1])*100.))
+	fig = plt.figure()
+	sns.heatmap(cmat.T, square=True, annot=True, fmt='d', cbar=False)
+	plt.xlabel('True')
+	plt.ylabel('Predicted')
+	plt.xticks(np.arange(3)+0.5, ('No burst', 'Type II', 'Type III'))
+	plt.yticks(np.arange(3)+0.5, ('No burst', 'Type II', 'Type III'))
+	plt.tick_params(labelsize=8)
+	plt.show()
 
-	'''
-	for a, y in zip(predictions, test_data[1]):
-		#if a==y:
-		print('Predicted burst type: %s' %(a))
-		img = Image.open(test_files[i])
-		data = np.asarray(img)
-		fig = plt.figure()
-		plt.imshow(data)
-		plt.title('Predicted burst type: %s' %(a))
-		plt.show()
-		plt.pause(1)
-		plt.close(fig)
-		i=i+1
-	'''
+
 if __name__=="__main__":
 
 	# The training and test data is constructed using build_train_data.py
 	data=np.load('../train_test_data.npy')
 	training_data = data[0]   
 	test_data = data[1]    
-	svm_baseline(training_data, test_data)
+	svm_train_eval(training_data, test_data)

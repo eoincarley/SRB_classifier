@@ -57,9 +57,9 @@ def get_box_coords(coords, nx, ny):
 	y1 = ny - (y0 + height)  # Note that pacthes.Rectangle measure the y-coord from the bottom.
 	x1 = int(x0 + width)
 
-	spill=x1-nx-4.0 if x1>=(nx-2) else 0.0
+	spill=x1-(nx-2) if x1>=(nx-5) else 0
 	width = width-spill
-
+	
 	if y1<0: height=height+y1
 	boxx0 = np.clip(x0, 0, nx)
 	boxy0 = np.clip(y1, 0, ny)
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
 	yolo_allburst_coords = yolo_results_parser('IE613_detections_600_0010_20190110.txt')
 
-	for img_index, tstep in enumerate(trange):
+	for img_index,tstep in enumerate(trange):
 		#-------------------------------------#
 		#     Select block of time. 
 		#     Shifts by tstep every iteration of the loop.
@@ -122,6 +122,7 @@ if __name__ == '__main__':
 		times_ut = timesut_total[time_index[0]]
 		data = spectro[::, time_index[0]] #mode 3 reading
 		data = backsub(data)
+		data[121:123, ::] = np.median(data)
 		delta_t = times_ut - times_ut[0]
 		ntimes = len(delta_t)
 		times_dt = [datetime.fromtimestamp(t) for t in times_ut]
@@ -129,15 +130,35 @@ if __name__ == '__main__':
 		img_key = 'image_'+time0_str
 
 		fig = plt.figure(2, figsize=(10,7))
-		ax = fig.add_axes([0.1, 0.11, 0.9, 0.8])
-		spec=spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
-		spec.t_label='Time (UT)'
-		spec.f_label='Frequency (MHz)'
+
+		#----------------------------------------#
+		#
+		#		Plot original spectrogram
+		#
+		ax0 = fig.add_axes([0.1, 0.54, 0.8, 0.38])
+
+		spec = spectrogram.Spectrogram(data, delta_t, freqs, times_dt[0], times_dt[-1])
 		scl1 = 0.995 #data.mean() #- data.std()
 		scl2 = 1.025 #data.mean() + data.std()*4.0
+		spec.t_label=' '
+		spec.plot(vmin=scl1, 
+		           vmax=scl2, 
+		           cmap=plt.get_cmap('bone'), colorbar=False)
+		plt.xticks([])
+		spec.t_label=' '
+		plt.text(190, 365, 'I-LOFAR YOLOv3 type III detections, %s' %(times_dt[0].strftime('%Y-%m-%d')))
+
+		#------------------------------------------#
+		#
+		#	Plot the spectrogram with detections 
+		#   on bottom of figure.
+		#
+		#
+		ax1 = fig.add_axes([0.1, 0.135, 0.8, 0.385])
+		spec.t_label='Time (UT)'
 		spec.plot(vmin=scl1, 
 		          vmax=scl2, 
-		          cmap=plt.get_cmap('bone'))
+		          cmap=plt.get_cmap('bone'), axnum=1, colorbar=False)
 
 		yolo_burst_coords = yolo_allburst_coords[img_key]
 
@@ -150,7 +171,7 @@ if __name__ == '__main__':
 					linewidth=0.5, 	
 					edgecolor='lawngreen', 
 					facecolor='none')  
-			ax.add_patch(rect)
+			ax1.add_patch(rect)
 
 			#----------------------------------#
 			#
@@ -175,15 +196,12 @@ if __name__ == '__main__':
 			xbox, ybox = xpoints[np.where( box_indices )], ypoints[np.where( box_indices )]
 			xbox, ybox = np.clip(xbox, 0, ntimes-2), np.clip(ybox, 0, nfreqs-2)
 
-			plt.scatter(x=xbox, y=ybox*2.0, c='r', s=10, alpha=0.1)
-
-
-		plt.text(200, 365, 'IE613 I-LOFAR YOLOv3 type III detections')
+			ax1.scatter(x=xbox, y=ybox*2.0, c='r', s=10, alpha=0.1)	
+         	
 		out_png = output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png'
 		print("Saving %s" %(out_png))
 		fig.savefig(output_path+'/IE613_'+str(format(img_index, '04'))+'_detections.png')
 		plt.close(fig)
-			
 
 	    
-	#ffmpeg -y -r 20 -i IE613_%04d_detections.png -vb 50M IE613_YOLO_600_0001.mpg
+	#ffmpeg -y -r 20 -i IE613_%04d_detections.png -vb 50M IE613_YOLO_600_0010.mpg

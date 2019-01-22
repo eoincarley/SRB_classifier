@@ -205,12 +205,12 @@ if __name__=="__main__":
 	# Produce an image, add background Gaussian noise and antenna frequency response
 	img_sz = 512
 	orig_image = np.zeros([img_sz, img_sz])
-	nsamples = 20000
+	nsamples = 10000
 	backg = 1.0 + np.sin(np.linspace(0, np.pi, img_sz))*4
 	backg = [backg, backg]
 	backg = np.transpose(np.repeat(backg, img_sz/2, axis=0))
 	tophat_kernel = Tophat2DKernel(2)
-	root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/typeIII/'
+	root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/typeIII_cluster/'
 	orig_image[::] = 1.0
 	orig_image = orig_image + backg
 
@@ -230,7 +230,7 @@ if __name__=="__main__":
 		Following characteristics produce a cluster 
 		of type IIIs together, as often occurs.
 		'''
-		cluster_type = 2 #random.randint(2,3)
+		cluster_type = 0 #random.randint(2,3)
 		nbursts = burst_cluster( cluster_type, img_sz )['nbursts']
 		trange = burst_cluster( cluster_type, img_sz )['trange']
 		head_range = burst_cluster( cluster_type, img_sz )['head_range']
@@ -238,7 +238,7 @@ if __name__=="__main__":
 		
 		for i in np.arange(0, nbursts): 
 			new_image, bbox, embed_fail = embed_typeIII(image, 
-				trange=trange, head_range=head_range, tail_range=tail_range, intensity=random.uniform(1, 5))
+				trange=trange, head_range=head_range, tail_range=tail_range, intensity=random.uniform(1, 10))
 
 			if not embed_fail:
 				if i==0:
@@ -258,7 +258,7 @@ if __name__=="__main__":
 		fig = plt.figure(1, frameon=False, figsize=(4,4))
 		ax = fig.add_axes([0, 0, 1, 1])
 		ax.axis('off')
-		ax.imshow(image, cmap=plt.get_cmap('gray'), vmin=image.min(), vmax=image.max())
+		ax.imshow(image, cmap=plt.get_cmap('gray'), vmin=image.min(), vmax=image.max()*random.uniform(0.6, 1))
 
 		#---------------------------------------------------------#
 		#
