@@ -1,4 +1,5 @@
 train_test_data.npy
+radio_bursts/
 radio_bursts/*
 SVM/hyperparam_optimise.npy
 Inception/classify_20170902/*
@@ -14,4 +15,6 @@ Darknet/data/*
 Darknet/backup/*
 Darknet/darknet19_448.conv.23
 Darknet/darknet53.conv.74
-Darknet/README.md
+Darknet/README.mdi
+darknet_20190115/
+train_test_data*.npy

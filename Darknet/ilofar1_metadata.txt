@@ -1,0 +1,65 @@
+canIpForward: false
+cpuPlatform: Unknown CPU Platform
+creationTimestamp: '2018-12-03T03:57:37.695-08:00'
+deletionProtection: false
+description: ''
+disks:
+- autoDelete: false
+  boot: true
+  deviceName: ilofar1
+  guestOsFeatures:
+  - type: VIRTIO_SCSI_MULTIQUEUE
+  index: 0
+  interface: SCSI
+  kind: compute#attachedDisk
+  licenses:
+  - https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/licenses/ubuntu-1604-xenial
+  mode: READ_WRITE
+  source: https://www.googleapis.com/compute/v1/projects/ace-thought-224110/zones/europe-west1-b/disks/ilofar1
+  type: PERSISTENT
+guestAccelerators:
+- acceleratorCount: 1
+  acceleratorType: https://www.googleapis.com/compute/v1/projects/ace-thought-224110/zones/europe-west1-b/acceleratorTypes/nvidia-tesla-k80
+id: '5476416967716414687'
+kind: compute#instance
+labelFingerprint: 42WmSpB8rSM=
+machineType: https://www.googleapis.com/compute/v1/projects/ace-thought-224110/zones/europe-west1-b/machineTypes/n1-standard-1
+metadata:
+  fingerprint: tXqI9xn-2HM=
+  items:
+  - key: ssh-keys
+    value: |
+      eoincarley:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCHLpOO0iSYeYtU1Q8h0BwrPOmCFDbX/itLCZ1JbKhI1XFnOtdVHf+PfMeoWr9toCuJVfGMHmF2kjRNyNnEuBuFfZ4DvV+LL5wO0Yiz9hi0S+KIiKIBDcooUHDPh2jWgh4dYtnZJTSLJykWr55eulDdQtTOsLwU3qmhvKs3LbMUrsaNempXPpbXLrdn4mAjQ4pU3NH7Ceb8EKhjrpcMKpbMtW31P+WjKECMQ64t62u5yUZM7RSKAHVcI78Wf1Hze8WGK6kQDCodoNV3Ubwb0/Yh3XOAGSZn06KMbgS0hRI8bdw3dcSAv+y8YV0IPjZT0rjyr6tVhi1EB3QNcsN4v60b google-ssh {"userName":"eoincarley@gmail.com","expireOn":"2018-12-11T16:50:13+0000"}
+  kind: compute#metadata
+name: ilofar1
+networkInterfaces:
+- accessConfigs:
+  - kind: compute#accessConfig
+    name: External NAT
+    networkTier: PREMIUM
+    type: ONE_TO_ONE_NAT
+  fingerprint: rQg-Hcadtio=
+  kind: compute#networkInterface
+  name: nic0
+  network: https://www.googleapis.com/compute/v1/projects/ace-thought-224110/global/networks/default
+  networkIP: 10.132.0.2
+  subnetwork: https://www.googleapis.com/compute/v1/projects/ace-thought-224110/regions/europe-west1/subnetworks/default
+scheduling:
+  automaticRestart: true
+  onHostMaintenance: TERMINATE
+  preemptible: false
+selfLink: https://www.googleapis.com/compute/v1/projects/ace-thought-224110/zones/europe-west1-b/instances/ilofar1
+serviceAccounts:
+- email: 677795582888-compute@developer.gserviceaccount.com
+  scopes:
+  - https://www.googleapis.com/auth/devstorage.read_only
+  - https://www.googleapis.com/auth/logging.write
+  - https://www.googleapis.com/auth/monitoring.write
+  - https://www.googleapis.com/auth/servicecontrol
+  - https://www.googleapis.com/auth/service.management.readonly
+  - https://www.googleapis.com/auth/trace.append
+startRestricted: false
+status: TERMINATED
+tags:
+  fingerprint: 42WmSpB8rSM=
+zone: https://www.googleapis.com/compute/v1/projects/ace-thought-224110/zones/europe-west1-b

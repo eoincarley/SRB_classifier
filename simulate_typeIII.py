@@ -67,7 +67,7 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 	xdrift = t0 + base_driftrate/drift_range 		# In pixel units. Responsible for how 'curved' the head is.
 	#xdrift = np.linspace(t0, t0-driftrate, len(frange))
 
-	headsize = random.randint(0.1, 10) 	# Controls how much the head of the type III decays away -> how fat the head is.
+	headsize = random.randint(0.1, 15) 	# Controls how much the head of the type III decays away -> how fat the head is.
 	tailsize = random.uniform(0.1, 5)     
 	turnover = random.randint(3, 100)     # Controls how long the head is in time 						
 	tspread0 = np.linspace(0, headsize, turnover)  					# The first ten pixels of the head get fatter
@@ -96,7 +96,7 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 	for index, f in enumerate(frange):
 
 		tdecay = tspread[index]  # Decay in time decreases as we go higher in frequency (towards the tail)
-		fluxdecay = 1.0/(4.0*np.exp(-times/tdecay))
+		fluxdecay = 1.0/(np.exp(-times/tdecay))
 		flux = 1.0/(fluxrise + fluxdecay)
 
 		flux = np.clip(flux*peak_flux_at_f[index], 0, 20)
@@ -126,6 +126,7 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 				# This else statement is to prevent return of bboxes for no bursts
 				#no_embed+=1	
 		except ValueError:	
+			pdb.set_trace()
 			embed_fail=True	
 
 	boxx0 = t0-10
@@ -159,23 +160,23 @@ def burst_cluster(i, img_sz):
 
 	# This function is for choosing/randomising burst cluster characteristics e.g.,
 	# whether ot not it's a single burst, a cluster or randomly distributed.
-	cluster_t0=random.randint(10, img_sz-130)
+	cluster_t0=random.randint(10, img_sz-160)
 	switcher={
 		# Compact cluster
-	    0:{'nbursts':random.randint(2, 10), 
-	    		   'trange':[cluster_t0, cluster_t0+120], 
-	    		   'head_range':[0,50],
-	    		   'tail_range':[img_sz-50,img_sz-10]},
+	    0:{'nbursts':random.randint(2, 4), 
+		   'trange':[cluster_t0, cluster_t0+150], 
+		   'head_range':[0,50],
+		   'tail_range':[img_sz-50,img_sz-10]},
 		# Random	   
 	    1:{'nbursts':random.randint(2, 3), 
-	    		   'trange':[5, img_sz-20], 
-	    		   'head_range':[0,200],
-	    		   'tail_range':[img_sz-50,img_sz-10]},
+		   'trange':[5, img_sz-20], 
+		   'head_range':[0,200],
+		   'tail_range':[img_sz-50,img_sz-10]},
 	    # Single		   
 	    2:{'nbursts':1, 
-	    		   'trange':[5, img_sz-20], 
-	    		   'head_range':[0,200],
-	    		   'tail_range':[img_sz-280,img_sz-5]}
+		   'trange':[5, img_sz-20], 
+		   'head_range':[0,200],
+		   'tail_range':[img_sz-280,img_sz-5]}
 	     }
 	return switcher.get(i, "Invalid burst cluster")
 
@@ -205,7 +206,7 @@ if __name__=="__main__":
 	# Produce an image, add background Gaussian noise and antenna frequency response
 	img_sz = 512
 	orig_image = np.zeros([img_sz, img_sz])
-	nsamples = 10000
+	nsamples = 5000
 	backg = 1.0 + np.sin(np.linspace(0, np.pi, img_sz))*4
 	backg = [backg, backg]
 	backg = np.transpose(np.repeat(backg, img_sz/2, axis=0))
@@ -258,7 +259,7 @@ if __name__=="__main__":
 		fig = plt.figure(1, frameon=False, figsize=(4,4))
 		ax = fig.add_axes([0, 0, 1, 1])
 		ax.axis('off')
-		ax.imshow(image, cmap=plt.get_cmap('gray'), vmin=image.min(), vmax=image.max()*random.uniform(0.6, 1))
+		ax.imshow(image, cmap=plt.get_cmap('gray'), vmin=image.min()*random.uniform(1.0, 2.0), vmax=image.max()*random.uniform(0.4, 1))
 
 		#---------------------------------------------------------#
 		#
@@ -277,10 +278,14 @@ if __name__=="__main__":
 			#print(txt_coords)
 			file.write(txt_coords)
 
+		
+		#plt.show()	
+		#pdb.set_trace()
 		file.close()
 		print('Saving %s' %(png_file))
 		fig.savefig(png_file, transparent = True, bbox_inches = 'tight', pad_inches = 0, format='png')
 		os.system("mogrify -format jpg -trim -resize 512x512 "+png_file)
+		os.system("rm "+png_file)
 		plt.close(fig)
 
 

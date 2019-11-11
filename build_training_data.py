@@ -57,13 +57,14 @@ from sklearn.preprocessing import StandardScaler
 #	 Functions
 # 
 def build_1Dimg(files, burst_type):
-	size = 100
+	size = 50 #100
 	# Go through all images, resize, flaten to 1D vector, normalise, concatenate
 	for index, file in enumerate(files):
 		img = Image.open(file)
 		#img.thumbnail(size)
+		#pdb.set_trace()
 		data = np.asarray(img)
-		data = data[:,:,0]
+		data = data[0:498,1:499,0] # IDL saves a 1 pxel white border. Get rid.
 		data= resize(data, (size, size))
 		data = data.flatten()
 		#data = data/np.max(data)
@@ -106,15 +107,19 @@ if __name__=="__main__":
 	# Following images are cosntructed from dynamic spectra downloaded from RSTN archives.
 	# Burst times and types were from the SWPC event lists. List not always accurate, so watch
 	# out for mislabels.
-	type0files=glob.glob('radio_bursts/type0/*.*') 
+
+	# root is normally radio_bursts, which is linked to one of the trials in ~/Data/RSTN_archive.
+	root = 'radio_bursts'
+
+	type0files = np.sort(glob.glob(root+'/type0/*.*'))
 	type0files_train = type0files[0:-ntest]
 	type0files_test = type0files[-ntest::]
 
-	typeIIfiles=glob.glob('radio_bursts/typeII/*.*')
+	typeIIfiles = np.sort(glob.glob(root+'/typeII/*.*'))
 	typeIIfiles_train = typeIIfiles[0:-ntest]
 	typeIIfiles_test = typeIIfiles[-ntest::]
 
-	typeIIIfiles=glob.glob('radio_bursts/typeIII/*.*')
+	typeIIIfiles = np.sort(glob.glob(root+'/typeIII/*.*'))
 	typeIIIfiles_train = typeIIIfiles[0:-ntest]
 	typeIIIfiles_test = typeIIIfiles[-ntest::]
 
@@ -122,7 +127,7 @@ if __name__=="__main__":
 	test_data = assemble_train_data(type0files_test, typeIIfiles_test, typeIIIfiles_test)
 	
 	data = np.array([training_data, test_data])
-	if save==True: np.save('train_test_data.npy', data)
+	if save==True: np.save('train_test_data_trial6.npy', data)
 
 	print('Training and test data assembly complete.')
 	ntraining_imgs = np.shape(data[0][1])[0]

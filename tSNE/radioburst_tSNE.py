@@ -36,6 +36,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt 
+import seaborn as sns
 
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
@@ -45,7 +46,7 @@ if __name__=="__main__":
 
 	# The training and test data is constructed using build_train_data.py
 	sns.set()
-	data=np.load('../train_test_data.npy')
+	data=np.load('../train_test_data_trial6.npy')
 	training_data = data[0]   
 	training_imgs = training_data[0]
 	targets = training_data[1]

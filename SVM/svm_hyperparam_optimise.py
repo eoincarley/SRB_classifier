@@ -80,7 +80,7 @@ if __name__=="__main__":
 	# --------------------------------#	
 	# Load in training and test data
 	#	
-	data=np.load('../train_test_data_II_III.npy')
+	data=np.load('../train_test_data.npy')
 	training_data = data[0]   
 	test_data = data[1]  
 
@@ -95,11 +95,11 @@ if __name__=="__main__":
 	# -----------------------------------------------#	
 	#   Evaluate all gamma and C and fill the array
 	#
-	for i, C in enumerate(crange):
-		for j, gamm in enumerate(gamma_range):
-			gammaC_array[i,j]=svm_baseline(training_data, test_data, C, gamm)
+	#for i, C in enumerate(crange):
+	#	for j, gamm in enumerate(gamma_range):
+	#		gammaC_array[i,j]=svm_baseline(training_data, test_data, C, gamm)
 
-	#gammaC_array=np.load('hyperparam_optimise.npy')
+	gammaC_array=np.load('hyperparam_optimise.npy')
 
 	# --------------------------------#	
 	#       Plot the data

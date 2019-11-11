@@ -50,6 +50,7 @@ import pdb
 import glob
 
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -57,18 +58,20 @@ from sklearn import svm
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
+mpl.rcParams.update({'font.size': 12})
+
 def svm_train_eval(training_data, test_data):
 
 	x_train = training_data[0]
 	y_train = training_data[1]
 	x_test = test_data[0]
 	y_test = test_data[1]
-
+	#pdb.set_trace()
 	sc = StandardScaler()  
 	x_train = sc.fit_transform(x_train)  
 	x_test = sc.transform(x_test)  
 
-	clf = svm.SVC(C=1, gamma=1, kernel='poly', cache_size=1000.0, class_weight='balanced')
+	clf = svm.SVC(kernel='rbf', cache_size=1000.0, class_weight='balanced')
 	clf.fit(x_train, y_train)
 	y_pred = clf.predict(x_test)  
 
@@ -81,19 +84,21 @@ def svm_train_eval(training_data, test_data):
 	cmat = confusion_matrix(y_test, y_pred)  
 
 	fig = plt.figure()
-	sns.heatmap(cmat.T, square=True, annot=True, fmt='d', cbar=False)
+	sns.heatmap(cmat.T, square=True, annot=True, fmt='d', cbar=False, cmap=plt.get_cmap('Blues'))
 	plt.xlabel('True')
 	plt.ylabel('Predicted')
 	plt.xticks(np.arange(3)+0.5, ('No burst', 'Type II', 'Type III'))
 	plt.yticks(np.arange(3)+0.5, ('No burst', 'Type II', 'Type III'))
-	plt.tick_params(labelsize=8)
+	#plt.tick_params(labelsize=10)
 	plt.show()
 
 
 if __name__=="__main__":
 
 	# The training and test data is constructed using build_train_data.py
-	data=np.load('../train_test_data.npy')
+	data=np.load('../train_test_data_trial6.npy')
 	training_data = data[0]   
 	test_data = data[1]    
 	svm_train_eval(training_data, test_data)
+
+
