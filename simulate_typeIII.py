@@ -55,8 +55,8 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 	embed_fail=False
 
 	img_sz = np.shape(image)[0]
-	t0 = random.randint(trange[0], trange[1])  	# Position of the type III head (top) in time.
-	f0 = random.randint(tail_range[0], tail_range[1])    # Position of the type III tail (bottom) in frequency.
+	t0 = random.randint(trange[0], trange[1])  				# Position of the type III head (top) in time.
+	f0 = random.randint(tail_range[0], tail_range[1])    	# Position of the type III tail (bottom) in frequency.
 	f1 = random.randint(head_range[0], head_range[1])		# Position of the type III head (top) in frequency.
 	nfreqs = f0-f1
 
@@ -64,13 +64,19 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 	frange = np.arange(int(f1), int(f0))
 	drift_range = np.linspace(1, 5, len(frange))
 	base_driftrate = random.randint(0,20)
-	xdrift = t0 + base_driftrate/drift_range 		# In pixel units. Responsible for how 'curved' the head is.
+	xdrift = t0 + base_driftrate/drift_range 		
+	# In pixel units. Responsible for how 'curved' the head is. The xdrift paramater demarcates the 'spine' of the type III.
+	# The spine is almost a straight line, with the amount of curvature randomized from base_drift. At each frequency (each row),
+	# there is an exponetnial rise and decay over time, peaking at the spine position. 
+	# The rise and decay are randomised (see fluxrise and decay profiles below).
+
+
 	#xdrift = np.linspace(t0, t0-driftrate, len(frange))
 
-	headsize = random.randint(0.1, 15) 	# Controls how much the head of the type III decays away -> how fat the head is.
+	headsize = random.randint(0.1, 15) 		# Controls how much the head of the type III decays away -> how fat the head is.
 	tailsize = random.uniform(0.1, 5)     
-	turnover = random.randint(3, 100)     # Controls how long the head is in time 						
-	tspread0 = np.linspace(0, headsize, turnover)  					# The first ten pixels of the head get fatter
+	turnover = random.randint(3, 100)     	# Controls how long the head is in time 						
+	tspread0 = np.linspace(0, headsize, turnover)  							# The first ten pixels of the head get fatter
 	tspread1 = np.linspace(headsize, tailsize, len(frange[turnover::]))   	# After first ten pixels it get smaller and decays to 0.1
 	tspread = np.concatenate((tspread0, tspread1))
 
@@ -83,14 +89,14 @@ def embed_typeIII(image, trange=[10,400], head_range=[0,200], tail_range=[300,40
 	peak_flux_at_f[tail_indices] = random.randint(0, randpeak, len(tail_indices))
 	peak_flux_at_f = smooth.gaussian_filter1d(peak_flux_at_f, 6)
 
-	envelope = np.linspace(random.uniform(0.1, 1), 1, len(peak_flux_at_f)) # Sometimes the type III will fade as it increases in frequency.
+	envelope = np.linspace(random.uniform(0.1, 1), 1, len(peak_flux_at_f)) 	# Sometimes the type III will fade as it increases in frequency.
 	peak_flux_at_f = envelope*peak_flux_at_f
-	#peak_flux_at_f = random.randint(0, randpeak, len(frange))   # For adding a randomness to the type III intensity along it's body.
+	#peak_flux_at_f = random.randint(0, randpeak, len(frange))   			# For adding a randomness to the type III intensity along its body.
 
+	# Following loop controls the rise and decay profile at each frequency.
 	rise_time = 1.0  # Travelling across time for a particular frequency, 
 					 # this controls how fast intensity rises. Basically 1 pixel.
 
-	# Following loop controls the rise and decay profile at each frequency.
 	fluxrise = 1.0/np.exp(times/1.0) 
 	fluxdecay_range = 1/np.linspace(1, 5, len(frange))
 	for index, f in enumerate(frange):
@@ -204,28 +210,32 @@ def backsub(data):
 if __name__=="__main__":
 	
 	# Produce an image, add background Gaussian noise and antenna frequency response
+	root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/typeIII_cluster/'
+	nimages = 5000
+
+	# The LOFAR LBA spectrum peaks at around 55 MHz. This simulates such a response.
 	img_sz = 512
 	orig_image = np.zeros([img_sz, img_sz])
-	nsamples = 5000
 	backg = 1.0 + np.sin(np.linspace(0, np.pi, img_sz))*4
 	backg = [backg, backg]
 	backg = np.transpose(np.repeat(backg, img_sz/2, axis=0))
 	tophat_kernel = Tophat2DKernel(2)
-	root = '/Users/eoincarley/python/machine_learning/radio_burst_classifiers/Darknet/data/typeIII_cluster/'
 	orig_image[::] = 1.0
 	orig_image = orig_image + backg
 
-
-	for img_index in np.arange(0, nsamples):
+	for img_index in np.arange(0, nimages):
 		image = copy(orig_image)
 
-		randrfi = random.randint(40, 100)
-		for i in np.arange(0, randrfi): image=embed_rfi(image, itensity=10)
-		for i in np.arange(0, randrfi): image=embed_rfi(image, frange=[0, 80], itensity=25)
+		'''---------------------------------
+		Embed RFI. Could do with a tidy up to replace many for loops.
+		'''
+		randrfi0 = random.randint(40, 100)
+		randrfi1 = random.randint(0, 5)
+		for i in np.arange(0, randrfi0): image=embed_rfi(image, itensity=10)
+		for i in np.arange(0, randrfi0): image=embed_rfi(image, frange=[0, 80], itensity=25)
 		for i in np.arange(0, 5): image=embed_rfi(image, frange=[250, 270], itensity=25)
 		for i in np.arange(0, 5): image=embed_rfi(image, frange=[img_sz-30, img_sz-5], itensity=25)	
-		randrfi = random.randint(0, 5)
-		for i in np.arange(0, randrfi): image=embed_rfi_block(image, itensity=10)
+		for i in np.arange(0, randrfi1): image=embed_rfi_block(image, itensity=10)
 
 		'''---------------------------------
 		Following characteristics produce a cluster 
@@ -260,7 +270,9 @@ if __name__=="__main__":
 		ax = fig.add_axes([0, 0, 1, 1])
 		ax.axis('off')
 		ax.imshow(image, cmap=plt.get_cmap('gray'), vmin=image.min()*random.uniform(1.0, 2.0), vmax=image.max()*random.uniform(0.4, 1))
+		plt.show()
 
+		pdb.set_trace()
 		#---------------------------------------------------------#
 		#
 		#	Make the coords of feature for Darknet/YOLO training
